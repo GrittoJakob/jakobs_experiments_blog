@@ -269,36 +269,21 @@
         <h2 class="section-title">Posts</h2>
         <div class="posts">
           <article>
-            <div class="meta">1. April 2026 · MPO · Beispielpost</div>
-            <h3>Short Explanation and Implementation details</h3>
+            <div class="meta">April 1, 2026 · MPO · Reinforcement Learning</div>
+            <h3>
+              <a href="posts/mpo_post.html">MPO Algorithm: Explanation and Implementation Details</a>
+            </h3>
             <p>
-              Wir minimieren eine Funktion \(f(\theta)\) iterativ über
-              \(\theta_{t+1} = \theta_t - \eta \nabla f(\theta_t)\). Dabei ist
-              \(\eta\) die Lernrate. Ist sie zu groß, oszilliert das Verfahren; ist sie zu klein,
-              konvergiert es oft sehr langsam.
+              A practical overview of Maximum a Posteriori Policy Optimization (MPO),
+              including motivation, core ideas, implementation notes, and references.
             </p>
-            <p>
-              Für eine quadratische Funktion wie \(f(x) = x^2\) ergibt sich
-            </p>
-            <p>
-              $$\nabla f(x) = 2x$$
-            </p>
-            <p>
-              und damit das Update
-            </p>
-            <p>
-              $$x_{t+1} = x_t - 2\eta x_t = (1 - 2\eta)x_t.$$
-            </p>
-            <p>
-              Daran sieht man direkt, wie stark die Wahl von \(\eta\) die Dynamik bestimmt.
-            </p>
-            <a class="repo-link" href="https://github.com/deinname/gradient-descent-demo" target="_blank" rel="noreferrer">
-              → Implementierungs-Repo ansehen
+            <a class="repo-link" href="posts/mpo_post.html">
+              → Read full post
             </a>
             <div class="tag-row">
-              <span class="tag">Optimierung</span>
-              <span class="tag">ML</span>
-              <span class="tag">LaTeX</span>
+              <span class="tag">MPO</span>
+              <span class="tag">RL</span>
+              <span class="tag">Off-Policy</span>
             </div>
           </article>
 

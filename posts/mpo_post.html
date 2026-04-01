@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MPO – Explanation and Implementation Details</title>
+    <meta
+      name="description"
+      content="A practical overview of Maximum a Posteriori Policy Optimization (MPO), including motivation, core ideas, implementation notes, and references."
+    />
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+    />
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+    ></script>
+
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --panel: #ffffff;
+        --text: #1f2328;
+        --muted: #5f6b7a;
+        --border: #d8dee4;
+        --link: #0969da;
+        --accent: #111827;
+        --max: 860px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+      }
+
+      a {
+        color: var(--link);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .wrap {
+        width: min(100% - 2rem, var(--max));
+        margin: 0 auto;
+      }
+
+      header {
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(10px);
+      }
+
+      .nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 0;
+      }
+
+      .brand {
+        font-weight: 700;
+        color: var(--accent);
+      }
+
+      main {
+        padding: 2rem 0 4rem;
+      }
+
+      article {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 2rem;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-bottom: 1.25rem;
+        font-weight: 600;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 0.95rem;
+        margin-bottom: 0.75rem;
+      }
+
+      h1, h2, h3 {
+        line-height: 1.2;
+        margin-top: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        margin-bottom: 0.75rem;
+      }
+
+      h2 {
+        margin-top: 2rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .lead {
+        font-size: 1.1rem;
+        color: var(--muted);
+      }
+
+      .tag-row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1.5rem;
+      }
+
+      .tag {
+        font-size: 0.85rem;
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--muted);
+      }
+
+      .repo-box,
+      .note-box,
+      .ref-box {
+        margin-top: 1.5rem;
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #fafafa;
+      }
+
+      code {
+        background: #f1f3f5;
+        padding: 0.12rem 0.35rem;
+        border-radius: 6px;
+      }
+
+      pre {
+        background: #111827;
+        color: #f9fafb;
+        padding: 1rem;
+        border-radius: 12px;
+        overflow-x: auto;
+      }
+
+      ul {
+        padding-left: 1.2rem;
+      }
+
+      li + li {
+        margin-top: 0.45rem;
+      }
+
+      footer {
+        margin-top: 1.5rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      @media (max-width: 640px) {
+        article {
+          padding: 1.25rem;
+          border-radius: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap nav">
+        <a class="brand" href="../index.html">My Experiments Blog</a>
+        <a href="../index.html">← Back to the overview</a>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <article>
+        <a class="back-link" href="../index.html">← All posts</a>
+
+        <div class="meta">April 1, 2026 · MPO · Reinforcement Learning</div>
+
+        <h1>MPO Algorithm: Explanation and Implementation Details</h1>
+
+        <p class="lead">
+          Maximum a Posteriori Policy Optimization (MPO) is an off-policy actor-critic
+          algorithm based on an EM-style policy improvement procedure. In my view, MPO is
+          particularly interesting because it is often more robust to hyperparameter choices
+          than many other off-policy methods, while also using a policy update that does not
+          fit neatly into the usual categories of pure policy-gradient or value-gradient methods.
+          This post summarizes the main ideas behind MPO and highlights practical details from
+          my own implementation.
+        </p>
+
+        <div class="tag-row">
+          <span class="tag">MPO</span>
+          <span class="tag">RL</span>
+          <span class="tag">Off-Policy</span>
+        </div>
+
+        <h2>Motivation</h2>
+        <p>
+          This project originally started as part of a course at the Technical University
+          of Munich. The broader goal was to explore whether sim-to-real transfer could be
+          improved with meta-reinforcement learning. Since many current Meta-RL algorithms
+          suffer from poor sample efficiency, the idea was to combine RL<sup>2</sup> with a
+          strong off-policy learner, namely MPO.
+        </p>
+
+        <p>
+          In practice, however, this combination did not work as well as expected. A major
+          issue was runtime: making the overall system stable required repeated backpropagation
+          through time, which made the training procedure expensive and difficult to scale.
+          For that reason, I decided to focus on MPO itself. Even independently of the original
+          Meta-RL setting, MPO turned out to be a very interesting algorithm from both a
+          conceptual and implementation perspective.
+        </p>
+
+        <h2>Setup</h2>
+        <p>
+          Throughout this post, I use the standard notation of a Markov decision process.
+          States are denoted by \(s\), actions by \(a\), rewards by \(r\), and the policy by
+          \( \pi(a \mid s) \). The critic estimates an action-value function \(Q(s,a)\).
+        </p>
+
+        <p>
+          MPO follows the general actor-critic structure:
+        </p>
+
+        <ul>
+          <li><strong>Policy evaluation:</strong> learn a critic that approximates the action-value function.</li>
+          <li><strong>Policy improvement:</strong> update the actor using an EM-style objective.</li>
+        </ul>
+
+        <h2>Core Optimization Idea</h2>
+        <p>
+          The critic can in principle be trained with a range of standard off-policy targets.
+          For example, one may use one-step temporal-difference learning, multi-step targets,
+          or more advanced return estimators such as Retrace. In my own implementation, I used
+          one-step TD learning because it is simple, stable, and does not depend on more involved
+          sequential storage and update logic. Other choices are certainly possible and may work
+          better depending on the environment and training setup.
+        </p>
+
+        <p>
+          In my implementation, the critic target is
+        </p>
+
+        <p>
+          $$
+          q_{\text{target}}
+          =
+          r
+          +
+          m \gamma \, \mathbb{E}_{a' \sim \pi(\cdot \mid s')}[Q_{\text{target}}(s', a')],
+          $$
+        </p>
+
+        <p>
+          where \(m\) is a bootstrap mask that is zero at terminal transitions and one otherwise.
+          The current critic prediction is
+        </p>
+
+        <p>
+          $$
+          q_{\text{current}} = Q_\phi(s, a),
+          $$
+        </p>
+
+        <p>
+          and the critic is trained with a mean squared error objective:
+        </p>
+
+        <p>
+          $$
+          \mathcal{L}_{\text{critic}}(\phi)
+          =
+          \left(
+            q_{\text{target}} - q_{\text{current}}
+          \right)^2.
+          $$
+        </p>
+
+        <p>
+          In code, this corresponds to computing a TD target, evaluating the critic at the
+          sampled state-action pairs, and minimizing the MSE between both quantities.
+        </p>
+
+        <div class="repo-box">
+          <strong>Implementation:</strong><br />
+          <a href="[INSERT LINK TO CRITIC IMPLEMENTATION FILE]" target="_blank" rel="noreferrer">
+            → View critic implementation
+          </a>
+        </div>
+
+        <h2>MPO and Policy Improvement</h2>
+        <p>
+          The most interesting part of MPO is the policy improvement step. As already mentioned,
+          MPO is not naturally described as a standard policy-gradient method. Instead, it
+          performs policy improvement through an Expectation-Maximization-style procedure.
+          Conceptually, MPO separates the improvement step into two phases:
+        </p>
+
+        <ul>
+          <li>
+            <strong>E-step:</strong> construct an auxiliary action distribution \(q(a \mid s)\)
+            that gives higher weight to actions with high critic values.
+          </li>
+          <li>
+            <strong>M-step:</strong> fit the parameterized policy \( \pi(a \mid s) \) to that
+            auxiliary distribution while enforcing trust-region style constraints.
+          </li>
+        </ul>
+
+        <p>
+          This decomposition is elegant because it turns policy improvement into a constrained
+          fitting problem rather than a direct gradient step on the actor. That is one reason why
+          MPO often feels numerically well-behaved in practice.
+        </p>
+
+        <h2>Short Note on the EM Algorithm</h2>
+        <p>
+          Since MPO is motivated by an EM-style update, it is worth briefly recalling the general
+          idea behind the EM algorithm. EM appears in several areas of machine learning, including
+          Gaussian mixture models, latent-variable models, and variational inference. The key idea
+          is to replace a difficult optimization problem by alternating between two simpler steps.
+        </p>
+
+        <p>
+          In the classical latent-variable setting, we would like to optimize a log-likelihood
+          whose exact posterior is difficult or expensive to compute. EM introduces an auxiliary
+          distribution and iteratively improves a lower bound on the original objective. The
+          E-step updates the auxiliary distribution, while the M-step updates the model parameters
+          given that distribution.
+        </p>
+
+        <p>
+          MPO does not use EM in exactly the same probabilistic modeling sense, but the analogy is
+          very useful: first construct an improved non-parametric target distribution over actions,
+          then project that target back into the parametric policy class. 
+        </p>
+
+        <h2>E-Step</h2>
+        <p>
+          In the E-step, MPO computes an auxiliary distribution over actions that is biased toward
+          high-value actions under the current critic. A common form is
+        </p>
+
+        <p>
+          $$
+          q(a \mid s) \propto \pi(a \mid s)\exp\left(\frac{Q(s,a)}{\eta}\right),
+          $$
+        </p>
+
+        <p>
+          where \( \eta \) is a temperature parameter. Intuitively, this expression reweights the
+          current policy by exponentiated Q-values: actions with larger estimated value receive more
+          mass, but the strength of the reweighting is controlled by \( \eta \). If \( \eta \) is
+          large, the reweighting is softer; if \( \eta \) is small, the auxiliary distribution
+          becomes more concentrated on high-value actions.
+        </p>
+
+        <p>
+          In practice, this step is usually implemented with sampled candidate actions, because
+          computing the normalized distribution exactly is not feasible in continuous action spaces.
+        </p>
+
+        <h2>M-Step</h2>
+        <p>
+          In the M-step, the policy is updated to match the auxiliary distribution while keeping
+          the update controlled. The idea is not simply to chase the best actions greedily, but to
+          make a stable update that stays reasonably close to the current policy.
+        </p>
+
+        <p>
+          A generic way to describe this step is:
+        </p>
+
+        <p>
+          $$
+          \max_\theta
+          \;
+          \mathbb{E}_{s \sim \mathcal{D}}
+          \left[
+            \mathbb{E}_{a \sim q(\cdot \mid s)}
+            \left[
+              \log \pi_\theta(a \mid s)
+            \right]
+          \right]
+          \quad
+          \text{subject to a KL constraint.}
+          $$
+        </p>
+
+        <p>
+          The KL constraint acts as a trust region. It prevents the actor from changing too
+          aggressively in a single update and is one of the main ingredients behind the empirical
+          stability of MPO.
+        </p>
+
+        <p>
+          Depending on the exact implementation, the KL constraints may be split into separate
+          constraints for the mean and covariance of a Gaussian policy, or handled via dual
+          variables. This is one of the places where implementation details matter a lot.
+        </p>
+
+        <h2>Why is MPO Interesting?</h2>
+        <p>
+          There are several reasons why MPO stands out as an appealing algorithm:
+        </p>
+
+        <ul>
+          <li>It is off-policy and can therefore use replay data efficiently.</li>
+          <li>Its policy update is constrained, which often improves stability.</li>
+          <li>
+            The EM-style structure gives a clear interpretation of policy improvement as
+            “construct target actions first, then fit the actor.”
+          </li>
+          <li>
+            In practice, it often feels less brittle than several alternative off-policy actor-critic methods.
+          </li>
+        </ul>
+
+        <p>
+          Of course, this does not mean MPO is always the best choice. Its implementation is
+          somewhat more involved than simpler baselines, and details such as action sampling,
+          dual optimization, and KL handling can make a noticeable difference.
+        </p>
+
+        <h2>Implementation Notes</h2>
+        <p>
+          The implementation details matter a lot for MPO. In particular, the following components
+          deserve careful attention:
+        </p>
+
+        <ul>
+          <li>How actions are sampled for the E-step.</li>
+          <li>How the critic target is estimated.</li>
+          <li>How the KL constraints are enforced in the M-step.</li>
+          <li>How dual variables such as \( \eta \) are optimized.</li>
+          <li>How numerical instability is handled for exponentiated Q-values.</li>
+          <li>How target networks and update schedules are chosen.</li>
+        </ul>
+
+        <p>
+          One practical lesson from my experiments is that MPO can indeed be robust, but only once
+          the implementation is internally consistent. Small mismatches between critic scaling,
+          action sampling, and KL handling can easily lead to unstable or misleading behavior.
+        </p>
+
+        <pre><code># Optional pseudocode sketch
+for each training step:
+    update critic with TD target
+    sample candidate actions from current policy
+    compute reweighted auxiliary distribution q(a|s)
+    update actor under KL constraints
+    update target networks</code></pre>
+
+        <h2>Empirical Observations</h2>
+        <p>
+          In my own experiments, the most striking observation was that the algorithmic idea of MPO
+          is elegant and compelling, but getting all implementation details right takes time.
+          Once the training loop, target computation, and actor update were aligned properly,
+          the method behaved much more reliably. That said, runtime and engineering complexity were
+          still non-trivial, especially in the broader context of combining MPO with Meta-RL style
+          methods.
+        </p>
+
+        <p>
+          [You can add your own observations here: which environments you tested, which
+          hyperparameters were sensitive, whether the critic or actor caused more issues, and
+          which implementation choices turned out to matter most.]
+        </p>
+
+        <div class="note-box">
+          <strong>Note:</strong><br />
+          This post focuses on the high-level idea and the implementation aspects that I found most
+          relevant in practice. It is not intended to be a fully formal derivation of the original
+          MPO paper. For the exact constrained objectives and derivations, the original paper should
+          be consulted directly.
+        </div>
+
+        <h2>References</h2>
+        <div class="ref-box">
+          <ul>
+            <li>
+              Abdolmaleki, A., Neunert, M., Lampe, T., Siegel, N., Song, H., Springenberg, J. T.,
+              Tassa, Y., Riedmiller, M., and Hadsell, R.
+              <em>Maximum a Posteriori Policy Optimisation.</em>
+              [Add year / conference details as desired]
+            </li>
+            <li>
+              Bishop, C. M.
+              <em>Pattern Recognition and Machine Learning.</em>
+              Springer, 2006.
+            </li>
+            <li>
+              [Add additional references here, e.g. Retrace, actor-critic background, Meta-RL papers, RL², etc.]
+            </li>
+          </ul>
+        </div>
+
+        <div class="repo-box">
+          <strong>Code:</strong><br />
+          <a href="[INSERT GITHUB LINK]" target="_blank" rel="noreferrer">
+            → View implementation on GitHub
+          </a>
+        </div>
+
+        <footer>
+          Written by [Your Name] · [Optional affiliation or note]
+        </footer>
+      </article>
+    </main>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "$", right: "$", display: false }
+          ],
+          throwOnError: false
+        });
+      });
+    </script>
+  </body>
+</html>
