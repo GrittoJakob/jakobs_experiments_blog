@@ -204,8 +204,7 @@
           particularly interesting because it is often more robust to hyperparameter choices
           than many other off-policy methods, while also using a policy update that does not
           fit neatly into the usual categories of pure policy-gradient or value-gradient methods.
-          This post summarizes the main ideas behind MPO and highlights practical details from
-          my own implementation.
+          In this post, I will summarize the main ideas behind MPO and give some details from my own implementation.
         </p>
 
         <div class="tag-row">
@@ -217,16 +216,16 @@
         <h2>Motivation</h2>
         <p>
           This project originally started as part of a course at the Technical University
-          of Munich. The broader goal was to explore whether sim-to-real transfer could be
+          of Munich. The initial goal was to explore whether sim-to-real transfer could be
           improved with meta-reinforcement learning. Since many current Meta-RL algorithms
           suffer from poor sample efficiency, the idea was to combine RL<sup>2</sup> with a
-          strong off-policy learner, namely MPO.
+          strong off-policy learner, the MPO.
         </p>
 
         <p>
           In practice, however, this combination did not work as well as expected. A major
-          issue was runtime: making the overall system stable required repeated backpropagation
-          through time, which made the training procedure expensive and difficult to scale.
+          issue was the runtime. In order to update our recurrent actor unit we required repeated backpropagation
+          through time, which made the training procedure very expensive and difficult to scale.
           For that reason, I decided to focus on MPO itself. Even independently of the original
           Meta-RL setting, MPO turned out to be a very interesting algorithm from both a
           conceptual and implementation perspective.
@@ -237,8 +236,10 @@
           Throughout this post, I use the standard notation of a Markov decision process.
           States are denoted by \(s\), actions by \(a\), rewards by \(r\), and the policy by
           \( \pi(a \mid s) \). The critic estimates an action-value function \(Q(s,a)\).
-        </p>
 
+          Ok, then let' s start:)
+        </p>
+        
         <p>
           MPO follows the general actor-critic structure:
         </p>
@@ -248,14 +249,13 @@
           <li><strong>Policy improvement:</strong> update the actor using an EM-style objective.</li>
         </ul>
 
-        <h2>Core Optimization Idea</h2>
+        <h2>Policy Evaluation</h2>
         <p>
           The critic can in principle be trained with a range of standard off-policy targets.
           For example, one may use one-step temporal-difference learning, multi-step targets,
-          or more advanced return estimators such as Retrace. In my own implementation, I used
-          one-step TD learning because it is simple, stable, and does not depend on more involved
-          sequential storage and update logic. Other choices are certainly possible and may work
-          better depending on the environment and training setup.
+          or more advanced return estimators such as Retrace.
+          While Deepmind suggests using the Retrace algorithm, in my implementation I used one-step TD learning because it is simple, stable, and does not depend on more
+          sequential storage and update logic. However, Deepmind suggests in their paper using the Retrace algorithm. 
         </p>
 
         <p>
@@ -264,7 +264,7 @@
 
         <p>
           $$
-          q_{\text{target}}
+          Q_{\text{target}}
           =
           r
           +
@@ -279,7 +279,7 @@
 
         <p>
           $$
-          q_{\text{current}} = Q_\phi(s, a),
+          Q_{\text{current}} = Q_\phi(s, a),
           $$
         </p>
 
@@ -297,14 +297,9 @@
           $$
         </p>
 
-        <p>
-          In code, this corresponds to computing a TD target, evaluating the critic at the
-          sampled state-action pairs, and minimizing the MSE between both quantities.
-        </p>
-
         <div class="repo-box">
           <strong>Implementation:</strong><br />
-          <a href="[INSERT LINK TO CRITIC IMPLEMENTATION FILE]" target="_blank" rel="noreferrer">
+          <a href="https://github.com/GrittoJakob/mpo_experiments/blob/mpo_multitask/mpo/algorithm/td_learning.py" target="_blank" rel="noreferrer">
             → View critic implementation
           </a>
         </div>
@@ -312,31 +307,25 @@
         <h2>MPO and Policy Improvement</h2>
         <p>
           The most interesting part of MPO is the policy improvement step. As already mentioned,
-          MPO is not naturally described as a standard policy-gradient method. Instead, it
+          MPO can not easily be categorized as a standard policy-gradient method. Instead, it
           performs policy improvement through an Expectation-Maximization-style procedure.
           Conceptually, MPO separates the improvement step into two phases:
         </p>
 
         <ul>
           <li>
-            <strong>E-step:</strong> construct an auxiliary action distribution \(q(a \mid s)\)
+            <strong>E-step:</strong> construct an auxiliary (non-parametric) action distribution \(q(a \mid s)\)
             that gives higher weight to actions with high critic values.
           </li>
           <li>
             <strong>M-step:</strong> fit the parameterized policy \( \pi(a \mid s) \) to that
-            auxiliary distribution while enforcing trust-region style constraints.
+            auxiliary distribution
           </li>
         </ul>
 
-        <p>
-          This decomposition is elegant because it turns policy improvement into a constrained
-          fitting problem rather than a direct gradient step on the actor. That is one reason why
-          MPO often feels numerically well-behaved in practice.
-        </p>
-
         <h2>Short Note on the EM Algorithm</h2>
         <p>
-          Since MPO is motivated by an EM-style update, it is worth briefly recalling the general
+          Since MPO is motivated by an EM-style update, it is worth to briefly recall the general
           idea behind the EM algorithm. EM appears in several areas of machine learning, including
           Gaussian mixture models, latent-variable models, and variational inference. The key idea
           is to replace a difficult optimization problem by alternating between two simpler steps.
@@ -344,43 +333,163 @@
 
         <p>
           In the classical latent-variable setting, we would like to optimize a log-likelihood
-          whose exact posterior is difficult or expensive to compute. EM introduces an auxiliary
+          whose exact posterior is difficult to compute. EM introduces an auxiliary
           distribution and iteratively improves a lower bound on the original objective. The
           E-step updates the auxiliary distribution, while the M-step updates the model parameters
           given that distribution.
         </p>
 
         <p>
-          MPO does not use EM in exactly the same probabilistic modeling sense, but the analogy is
+          MPO does not use EM in exactly the same probabilistic way, but the analogy is
           very useful: first construct an improved non-parametric target distribution over actions,
           then project that target back into the parametric policy class. 
         </p>
 
         <h2>E-Step</h2>
         <p>
-          In the E-step, MPO computes an auxiliary distribution over actions that is biased toward
-          high-value actions under the current critic. A common form is
+        In the E-step, MPO computes an auxiliary distribution over actions by
+        reweighting the current policy with critic values. The goal is to improve the
+        action distribution while keeping it close to the current policy
+        \( \pi_i(a \mid s) \). In the non-parametric variant of MPO, this is done by
+        solving a constrained optimization problem: maximize the expected Q-value
+        under \( q(a \mid s) \), subject to a KL constraint and the normalization of
+        \( q \). :contentReference[oaicite:1]{index=1}
         </p>
 
         <p>
-          $$
-          q(a \mid s) \propto \pi(a \mid s)\exp\left(\frac{Q(s,a)}{\eta}\right),
-          $$
+        More precisely, the constrained E-step can be written as
         </p>
 
         <p>
-          where \( \eta \) is a temperature parameter. Intuitively, this expression reweights the
-          current policy by exponentiated Q-values: actions with larger estimated value receive more
-          mass, but the strength of the reweighting is controlled by \( \eta \). If \( \eta \) is
-          large, the reweighting is softer; if \( \eta \) is small, the auxiliary distribution
-          becomes more concentrated on high-value actions.
+        $$
+        \begin{aligned}
+        \max_q \quad &
+        \int \mu(s)\int q(a \mid s)\,Q^{\pi_i}(s,a)\,da\,ds \\
+        \text{subject to} \quad &
+        \int \mu(s)\,\mathrm{KL}\!\left(q(a \mid s)\,\|\,\pi_i(a \mid s)\right)\,ds
+        < \epsilon, \\
+        &
+        \int q(a \mid s)\,da = 1
+        \quad \text{for all } s.
+        \end{aligned}
+        $$
         </p>
 
         <p>
-          In practice, this step is usually implemented with sampled candidate actions, because
-          computing the normalized distribution exactly is not feasible in continuous action spaces.
+        Here, \( \mu(s) \) denotes the state distribution used in the update, which in
+        practice is usually approximated by replay-buffer samples. The KL constraint
+        controls how far the improved distribution is allowed to move away from the
+        current policy. This trust-region style constraint is one of the main reasons
+        why MPO tends to behave robustly in practice. :contentReference[oaicite:2]{index=2}
         </p>
 
+        <p>
+        To solve this problem, we form the Lagrangian
+        </p>
+
+        <p>
+        $$
+        \begin{aligned}
+        \mathcal{L}(q,\eta,\gamma)
+        =\;&
+        \int \mu(s)\int q(a \mid s)\,Q^{\pi_i}(s,a)\,da\,ds \\
+        &+
+        \eta\left(
+            \epsilon
+            -
+            \int \mu(s)\,\mathrm{KL}\!\left(q(a \mid s)\,\|\,\pi_i(a \mid s)\right)\,ds
+        \right) \\
+        &+
+        \int \mu(s)\,\gamma(s)
+        \left(
+            1 - \int q(a \mid s)\,da
+        \right)\,ds ,
+        \end{aligned}
+        $$
+        </p>
+
+        <p>
+        where \( \eta \ge 0 \) is the Lagrange multiplier for the KL constraint and
+        \( \gamma(s) \) enforces that \( q(a \mid s) \) integrates to one for each
+        state. Taking the derivative with respect to \( q(a \mid s) \), setting it to
+        zero, and rearranging terms yields the closed-form optimizer. :contentReference[oaicite:3]{index=3}
+        </p>
+
+        <p>
+        The resulting optimal auxiliary distribution is given by
+        </p>
+
+        <p>
+        $$
+        q_i(a \mid s)
+        =
+        \frac{
+            \pi_i(a \mid s)\,
+            \exp\!\left(\frac{Q^{\pi_i}(s,a)}{\eta}\right)
+        }{
+            \int \pi_i(a' \mid s)\,
+            \exp\!\left(\frac{Q^{\pi_i}(s,a')}{\eta}\right)\,da'
+        }.
+        $$
+        </p>
+
+        <p>
+        While this expression is derived in continuous form, it is generally not
+        tractable in practice due to the integral in the denominator. Therefore,
+        MPO implementations approximate this distribution using a finite set of
+        sampled actions.
+        </p>
+
+        <p>
+        In practice, we sample \(N\) actions \(a_i \sim \pi(\cdot \mid s)\) and compute
+        normalized weights using a softmax over Q-values:
+        </p>
+
+        <p>
+        $$
+        q_{ij} = q(a_i, s_j)
+        =
+        \frac{
+            \exp\!\left(\frac{Q(s_j, a_i)}{\eta}\right)
+        }{
+            \sum_{l=1}^{N}
+            \exp\!\left(\frac{Q(s_j, a_l)}{\eta}\right)
+        }.
+        $$
+        </p>
+
+        <p>
+        This corresponds to a softmax over sampled Q-values and is the form typically
+        used in practical implementations of MPO. Intuitively, this assigns higher
+        probability mass to actions with larger Q-values while still maintaining a
+        normalized distribution.
+        </p>
+
+        <p>
+        The temperature parameter \( \eta \) is obtained by minimizing the dual function
+        </p>
+
+        <p>
+        $$
+        g(\eta)
+        =
+        \eta \epsilon
+        +
+        \eta \sum_j
+        \log
+        \left(
+            \frac{1}{N}
+            \sum_{i=1}^{N}
+            \exp\!\left(\frac{Q(s_j,a_i)}{\eta}\right)
+        \right),
+        $$
+        </p>
+
+        <p>
+        which is a convex function and can be optimized efficiently. This formulation
+        is consistent with the practical implementation described in follow-up work
+        and reflects how MPO is typically used in modern deep RL codebases.
+        </p>
         <h2>M-Step</h2>
         <p>
           In the M-step, the policy is updated to match the auxiliary distribution while keeping
