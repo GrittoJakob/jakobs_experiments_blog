@@ -346,149 +346,247 @@
         </p>
 
         <h2>E-Step</h2>
+
         <p>
-        In the E-step, MPO computes an auxiliary distribution over actions by
-        reweighting the current policy with critic values. The goal is to improve the
-        action distribution while keeping it close to the current policy
-        \( \pi_i(a \mid s) \). In the non-parametric variant of MPO, this is done by
-        solving a constrained optimization problem: maximize the expected Q-value
-        under \( q(a \mid s) \), subject to a KL constraint and the normalization of
-        \( q \).
+          In the E-step, MPO computes an auxiliary distribution over actions by
+          reweighting the current policy with critic values. The goal is to improve the
+          action distribution while keeping it close to the current policy
+          \( \pi_i(a \mid s) \).
         </p>
 
         <p>
-        More precisely, the constrained E-step can be written as
+          In the non-parametric variant of MPO, this is done by solving a constrained
+          optimization problem: maximize the auxiliar distribution \( q(a \mid s) \),
+          subject to a KL constraint and normalization.
+        </p>
+
+        <h3>Constrained Optimization Problem</h3>
+
+        <p>
+          $$
+          \begin{aligned}
+          \max_q \quad &
+          \int \mu(s)\int q(a \mid s)\,Q^{\pi_i}(s,a)\,da\,ds \\
+          \text{subject to} \quad &
+          \int \mu(s)\,\mathrm{KL}\!\left(q(a \mid s)\,\|\,\pi_i(a \mid s)\right)\,ds
+          < \epsilon, \\
+          &
+          \int \int \mu(s)\ q(a \mid s)\,dads = 1
+          \end{aligned}
+          $$
         </p>
 
         <p>
-        $$
-        \begin{aligned}
-        \max_q \quad &
-        \int \mu(s)\int q(a \mid s)\,Q^{\pi_i}(s,a)\,da\,ds \\
-        \text{subject to} \quad &
-        \int \mu(s)\,\mathrm{KL}\!\left(q(a \mid s)\,\|\,\pi_i(a \mid s)\right)\,ds
-        < \epsilon, \\
-        &
-        \int q(a \mid s)\,da = 1
-        \quad \text{for all } s.
-        \end{aligned}
-        $$
+          Here, \( \mu(s) \) denotes the state distribution approximated by replaybuffer samples.
+          The KL constraint ensures that the updated distribution remains close to the current policy.
+        </p>
+
+        <h3>Lagrangian Formulation</h3>
+
+        <p>
+          To solve this constrained optimization problem, we form the Lagrangian
         </p>
 
         <p>
-        Here, \( \mu(s) \) denotes the state distribution used in the update, which in
-        practice is usually approximated by replay-buffer samples. The KL constraint
-        controls how far the improved distribution is allowed to move away from the
-        current policy. This trust-region style constraint is one of the main reasons
-        why MPO tends to behave robustly in practice. :contentReference[oaicite:2]{index=2}
+          $$
+          \begin{aligned}
+          \mathcal{L}(q,\eta,\gamma)
+          =\;&
+          \int \mu(s)\int q(a \mid s)\,Q^{\pi_i}(s,a)\,da\,ds \\
+          &+
+          \eta\left(
+              \epsilon
+              -
+              \int \mu(s)\,\mathrm{KL}\!\left(q(a \mid s)\,\|\,\pi_i(a \mid s)\right)\,ds
+          \right) \\
+          &+
+          \gamma ( 1 -  \int\int \mu(s) q(a \mid s)\,dads)
+          \end{aligned}
+          $$
         </p>
 
         <p>
-        To solve this problem, we form the Lagrangian
+          where \( \eta \ge 0 \) is the Lagrange multiplier for the KL constraint and
+          \( \gamma(s) \) enforces normalization.
         </p>
 
         <p>
-        $$
-        \begin{aligned}
-        \mathcal{L}(q,\eta,\gamma)
-        =\;&
-        \int \mu(s)\int q(a \mid s)\,Q^{\pi_i}(s,a)\,da\,ds \\
-        &+
-        \eta\left(
-            \epsilon
-            -
-            \int \mu(s)\,\mathrm{KL}\!\left(q(a \mid s)\,\|\,\pi_i(a \mid s)\right)\,ds
-        \right) \\
-        &+
-        \int \mu(s)\,\gamma(s)
-        \left(
-            1 - \int q(a \mid s)\,da
-        \right)\,ds ,
-        \end{aligned}
-        $$
+          Taking derivatives w.r.t. \( q(a \mid s) \) and rearranging termns yields the
+          closed solution of the auxiliar distribution and dual function
         </p>
 
         <p>
-        where \( \eta \ge 0 \) is the Lagrange multiplier for the KL constraint and
-        \( \gamma(s) \) enforces that \( q(a \mid s) \) integrates to one for each
-        state. Taking the derivative with respect to \( q(a \mid s) \), setting it to
-        zero, and rearranging terms yields the closed-form optimizer. :contentReference[oaicite:3]{index=3}
+          $$
+          q_i(a \mid s) \propto \pi(a \mid s, \theta_i)\,
+          \exp\!\left(
+          \frac{Q_{\theta_i}(s,a)}{\eta^*}
+          \right)
+          $$
         </p>
 
         <p>
-        The resulting optimal auxiliary distribution is given by
+          $$
+          g(\eta)
+          =
+          \eta \epsilon
+          +
+          \eta \int \mu(s)\,
+          \log \int
+          \pi(a \mid s, \theta_i)\,
+          \exp\!\left(
+          \frac{Q_{\theta_i}(s,a)}{\eta}
+          \right)
+          \, da \, ds
+          $$
+        </p>
+
+        <h3>Practical Approximation (Softmax over Samples)</h3>
+
+        <p>
+          In practice, the integral is intractable and approximated via sampling from the replaybuffer.
         </p>
 
         <p>
-        $$
-        q_i(a \mid s)
-        =
-        \frac{
-            \pi_i(a \mid s)\,
-            \exp\!\left(\frac{Q^{\pi_i}(s,a)}{\eta}\right)
-        }{
-            \int \pi_i(a' \mid s)\,
-            \exp\!\left(\frac{Q^{\pi_i}(s,a')}{\eta}\right)\,da'
-        }.
-        $$
+          For each state sample we sample \(N\) actions \(a_i \sim \pi(\cdot \mid s)\) and compute:
         </p>
 
         <p>
-        While this expression is derived in continuous form, it is generally not
-        tractable in practice due to the integral in the denominator. Therefore,
-        MPO implementations approximate this distribution using a finite set of
-        sampled actions.
+          $$
+          q_{ij} = q(a_i, s_j)
+          =
+          \frac{
+              \exp\!\left(\frac{Q(s_j, a_i)}{\eta}\right)
+          }{
+              \sum_{l=1}^{N}
+              \exp\!\left(\frac{Q(s_j, a_l)}{\eta}\right)
+          }.
+          $$
         </p>
 
         <p>
-        In practice, we sample \(N\) actions \(a_i \sim \pi(\cdot \mid s)\) and compute
-        normalized weights using a softmax over Q-values:
+          This corresponds to a softmax over sampled Q-values and is the form used in
+          practical implementations as proposed in [cite 2].
         </p>
 
         <p>
-        $$
-        q_{ij} = q(a_i, s_j)
-        =
-        \frac{
-            \exp\!\left(\frac{Q(s_j, a_i)}{\eta}\right)
-        }{
-            \sum_{l=1}^{N}
-            \exp\!\left(\frac{Q(s_j, a_l)}{\eta}\right)
-        }.
-        $$
+          The dual function can be mimimized in practice by a few steps of gradient descent by the folling equation:
         </p>
 
         <p>
-        This corresponds to a softmax over sampled Q-values and is the form typically
-        used in practical implementations of MPO. Intuitively, this assigns higher
-        probability mass to actions with larger Q-values while still maintaining a
-        normalized distribution.
+          $$
+          \eta
+          =
+          \arg\min_{\eta}
+          \left(
+          \eta \epsilon
+          +
+          \eta \sum_{j=1}^{K}
+          \frac{1}{K}
+          \log
+          \left(
+          \sum_{i=1}^{N}
+          \frac{1}{N}
+          \exp\!\left(
+          \frac{Q(s_j, a_i)}{\eta}
+          \right)
+          \right)
+          \right)
+          $$
+        </p>
+
+        <h2>Action Penalty</h2>
+
+        <p>
+          In continuous control, sampling from our policy \( \pi(a \mid s) \) can produce out-of-bound
+          actions, for which the critic may assign unreliable values because those samples were never
+          observed during training. This can destabilize learning. To mitigate this issue, we include
+          an additional out-of-bounds action penalty in the E-step, following the multi-objective MPO
+          implementation by Google DeepMind \cite{acme_mpo_py}.
         </p>
 
         <p>
-        The temperature parameter \( \eta \) is obtained by minimizing the dual function
+          First, we compute the negative quadratic distance of the action and the action bound:
         </p>
 
         <p>
-        $$
-        g(\eta)
-        =
-        \eta \epsilon
-        +
-        \eta \sum_j
-        \log
-        \left(
-            \frac{1}{N}
-            \sum_{i=1}^{N}
-            \exp\!\left(\frac{Q(s_j,a_i)}{\eta}\right)
-        \right),
-        $$
+          $$
+          \Delta(a) = a -\mathrm{clip}(a, a_{\min}, a_{\max})
+          $$
         </p>
 
         <p>
-        which is a convex function and can be optimized efficiently. This formulation
-        is consistent with the practical implementation described in follow-up work
-        and reflects how MPO is typically used in modern deep RL codebases.
+          $$
+          c(a) = - \lVert \Delta(a) \rVert^2
+          $$
+        </p>
+
+        <p>
+          After that, we use the formula of the original E-step and compute a new auxiliar distribution
+          for the action penalty \( q_{\text{pen}}(a \mid s) \):
+        </p>
+
+        <p>
+          $$
+          q_{\text{pen}}(a \mid s)
+          =
+          \frac{
+          \exp\left(\frac{c(a)}{\eta_{\text{pen}}}\right)
+          }{
+          \sum_{i}
+          \exp\left(\frac{c(a_i)}{\eta_{\text{pen}}}\right)
+          }
+          $$
+        </p>
+
+        <p>
+          The term "action penalty" is somewhat misleading, since we do not add an explicit penalty term
+          to the reward or the critic objective. Instead, we mix two sets of E-step weights. We combine
+          both weightings via a mixing factor \( \lambda \) and renormalize the result, yielding the final
+          auxiliary distribution \( q(a\mid s) \).
+        </p>
+
+        <p>
+          $$
+          q(a \mid s)
+          =
+          (1 - \lambda)\, q_{\text{MPO}}(a \mid s)
+          +
+          \lambda\, q_{\text{pen}}(a \mid s)
+          $$
+        </p>
+
+        <p>
+          $$
+          q(a \mid s)
+          \leftarrow
+          \frac{
+          q(a \mid s)
+          }{
+          \sum_i q(a_i \mid s)
+          }
+          $$
+        </p>
+
+        <h2>Results of Action Penalty</h2>
+
+        <div style="text-align: center; margin-top: 1rem;">
+          <img 
+            src="../posts/images/MPO_action_penalty_plot.png" 
+            alt="Action penalty results" 
+            style="max-width: 100%; border-radius: 12px;"
+          />
+        </div>
+        <p>
+          From the learning curves in, we observe that both tanh-squashing of the policy mean and the
+          out-of-bounds action penalty improve early training, leading to faster return increases and
+          improved sample efficiency. The best-performing configuration combines tanh on the mean with
+          the action penalty, while the second-best variant uses the action penalty without tanh as
+          activation function. This indicates that incorporating the penalty term in the E-step stabilizes
+          learning and accelerates early progress. After roughly one million environment steps, however,
+          all variants converge to a very similar performance level. A plausible explanation is that the
+          penalty has the strongest impact early on, when policy variance is high and out-of-bound samples
+          occur more frequently. As training progresses, the policy becomes increasingly deterministic,
+          making such samples rare and reducing the influence of the penalty term.
         </p>
         <h2>M-Step</h2>
         <p>
