@@ -469,7 +469,7 @@
         </p>
 
         <p>
-          The dual function can be mimimized in practice by a few steps of gradient descent by the folling equation:
+          The dual function can be mimimized in practice by a few steps of gradient descent by the following equation:
         </p>
 
         <p>
@@ -588,43 +588,80 @@
           occur more frequently. As training progresses, the policy becomes increasingly deterministic,
           making such samples rare and reducing the influence of the penalty term.
         </p>
+
         <h2>M-Step</h2>
+
         <p>
-          In the M-step, the policy is updated to match the auxiliary distribution while keeping
-          the update controlled. The idea is not simply to chase the best actions greedily, but to
-          make a stable update that stays reasonably close to the current policy.
+          In the M-step, the policy is updated to match the auxiliary distribution while remaining close to the target policy to ensure stability. This is achieved by maximizing a likelihood objective under a KL divergence constraint, resulting in a constrained optimization problem.
         </p>
 
         <p>
-          A generic way to describe this step is:
+          This constrained problem can be written in Lagrangian form as:
         </p>
 
         <p>
           $$
-          \max_\theta
+          \max_{\pi}
           \;
-          \mathbb{E}_{s \sim \mathcal{D}}
-          \left[
-            \mathbb{E}_{a \sim q(\cdot \mid s)}
-            \left[
-              \log \pi_\theta(a \mid s)
-            \right]
-          \right]
-          \quad
-          \text{subject to a KL constraint.}
+          \int \mu_q(s)
+          \int q(a \mid s)\,\log \pi(a \mid s, \theta_i)\,da\,ds
+          \;-\;
+          \lambda
+          \int \mu_q(s)\,
+          \mathrm{KL}\!\left(
+          \pi(a \mid s, \theta_i)\,\|\,\pi_{\text{target}}(a \mid s, \theta)
+          \right)
+          ds
           $$
         </p>
 
         <p>
-          The KL constraint acts as a trust region. It prevents the actor from changing too
-          aggressively in a single update and is one of the main ingredients behind the empirical
-          stability of MPO.
+          The original paper proposes a decoupled version of the M-step, where the KL divergence is separated into a contribution of the mean and the covariance of the policy. This leads to the following objective:
         </p>
 
         <p>
-          Depending on the exact implementation, the KL constraints may be split into separate
-          constraints for the mean and covariance of a Gaussian policy, or handled via dual
-          variables. This is one of the places where implementation details matter a lot.
+          $$
+          L(\theta, \eta_\mu, \eta_\Sigma)
+          =
+          \int \mu_q(s)
+          \int q(a \mid s)\,\log \pi(a \mid s, \theta_i)\,da\,ds
+          +
+          \eta_\mu (\epsilon_\mu - C_\mu)
+          +
+          \eta_\Sigma (\epsilon_\Sigma - C_\Sigma)
+          $$
+        </p>
+
+        <p>with</p>
+
+        <p>
+          $$
+          C_\Sigma
+          =
+          \int \mu_q(s)\;
+          \frac{1}{2}
+          \left(
+          \mathrm{tr}\!\left(\Sigma^{-1}\Sigma_i\right)
+          - n
+          + \ln \frac{\Sigma}{\Sigma_i}
+          \right)
+          \, ds
+          $$
+        </p>
+
+        <p>
+          $$
+          C_\mu
+          =
+          \int \mu_q(s)\;
+          \frac{1}{2}
+          (\mu - \mu_i)^\top \Sigma^{-1} (\mu - \mu_i)
+          \, ds
+          $$
+        </p>
+
+        <p>
+          Unlike the E-step, the Lagrangian does not admit a closed-form solution. Therefore, we solve this constrained optimization problem by alternating min-max optimization where we first fix our lagrangian multipliers \( \eta \) and optimise for \( \theta \), and then fix \( \theta \) and solve for \( \eta \).
         </p>
 
         <h2>Why is MPO Interesting?</h2>
