@@ -627,19 +627,22 @@
         </p>
 
         <p>
-          The original paper proposes a decoupled version of the M-step, where the KL divergence is separated into a contribution of the mean and the covariance of the policy. This leads to the following objective:
+          The original paper proposes a decoupled version of the M-step, where the KL divergence is separated into contributions of the mean and the covariance of the policy.
+          Furthermore, when using a diagonal covariance matrix, these KL terms can be computed independently for each action dimension.
+          This allows us not only to control the average KL, but also to constrain the update of each action dimension separately.
+          This leads to the following objective:
         </p>
 
         <p>
           $$
-          L(\theta, \eta_\mu, \eta_\Sigma)
+          L(\theta, \eta_{\mu, j}, \eta_{\Sigma, j})
           =
           \int \mu_q(s)
           \int q(a \mid s)\,\log \pi(a \mid s, \theta_i)\,da\,ds
           +
-          \eta_\mu (\epsilon_\mu - C_\mu)
+          \sum_j \eta_{\mu, j} (\epsilon_{\mu, j} - C_{\mu, j})
           +
-          \eta_\Sigma (\epsilon_\Sigma - C_\Sigma)
+          \sum_j \eta_{\Sigma, j} (\epsilon_{\Sigma, j} - C_{\Sigma, j})
           $$
         </p>
 
@@ -647,14 +650,14 @@
 
         <p>
           $$
-          C_\Sigma
+          C_{\Sigma, j}
           =
           \int \mu_q(s)\;
           \frac{1}{2}
           \left(
-          \mathrm{tr}\!\left(\Sigma^{-1}\Sigma_i\right)
-          - n
-          + \ln \frac{\Sigma}{\Sigma_i}
+          \Sigma_{\text{target},j}^{-1}\Sigma_j
+          - 1
+          + \ln \frac{\Sigma_{\text{target},j}}{\Sigma_j}
           \right)
           \, ds
           $$
@@ -662,11 +665,13 @@
 
         <p>
           $$
-          C_\mu
+          C_{\mu, j}
           =
           \int \mu_q(s)\;
           \frac{1}{2}
-          (\mu - \mu_i)^\top \Sigma^{-1} (\mu - \mu_i)
+          (\mu_j - \mu_{\text{target},j})^\top
+          \Sigma_{\text{target},j}^{-1}
+          (\mu_j - \mu_{\text{target},j})
           \, ds
           $$
         </p>
@@ -682,82 +687,25 @@
           </a>
         </div>
 
+        <h2>Further Implementation Details</h2>
 
-        <h2>Why is MPO Interesting?</h2>
         <p>
-          There are several reasons why MPO stands out as an appealing algorithm:
+          The following additional implementation choices were made:
         </p>
 
         <ul>
-          <li>It is off-policy and can therefore use replay data efficiently.</li>
-          <li>Its policy update is constrained, which often improves stability.</li>
           <li>
-            The EM-style structure gives a clear interpretation of policy improvement as
-            “construct target actions first, then fit the actor.”
+            Actions were clipped to the valid bounds of the environment. Instead of applying tanh-squashing directly to the sampled actions, I experimented with applying tanh to the mean of the policy distribution, as shown in the plot above.
           </li>
+
           <li>
-            In practice, it often feels less brittle than several alternative off-policy actor-critic methods.
+            A diagonal covariance matrix was used, since the Ant environment does not strongly require modeling correlations between action dimensions.
+          </li>
+
+          <li>
+            The target networks were updated every 200 gradient steps.
           </li>
         </ul>
-
-        <p>
-          Of course, this does not mean MPO is always the best choice. Its implementation is
-          somewhat more involved than simpler baselines, and details such as action sampling,
-          dual optimization, and KL handling can make a noticeable difference.
-        </p>
-
-        <h2>Implementation Notes</h2>
-        <p>
-          The implementation details matter a lot for MPO. In particular, the following components
-          deserve careful attention:
-        </p>
-
-        <ul>
-          <li>How actions are sampled for the E-step.</li>
-          <li>How the critic target is estimated.</li>
-          <li>How the KL constraints are enforced in the M-step.</li>
-          <li>How dual variables such as \( \eta \) are optimized.</li>
-          <li>How numerical instability is handled for exponentiated Q-values.</li>
-          <li>How target networks and update schedules are chosen.</li>
-        </ul>
-
-        <p>
-          One practical lesson from my experiments is that MPO can indeed be robust, but only once
-          the implementation is internally consistent. Small mismatches between critic scaling,
-          action sampling, and KL handling can easily lead to unstable or misleading behavior.
-        </p>
-
-        <pre><code># Optional pseudocode sketch
-for each training step:
-    update critic with TD target
-    sample candidate actions from current policy
-    compute reweighted auxiliary distribution q(a|s)
-    update actor under KL constraints
-    update target networks</code></pre>
-
-        <h2>Empirical Observations</h2>
-        <p>
-          In my own experiments, the most striking observation was that the algorithmic idea of MPO
-          is elegant and compelling, but getting all implementation details right takes time.
-          Once the training loop, target computation, and actor update were aligned properly,
-          the method behaved much more reliably. That said, runtime and engineering complexity were
-          still non-trivial, especially in the broader context of combining MPO with Meta-RL style
-          methods.
-        </p>
-
-        <p>
-          [You can add your own observations here: which environments you tested, which
-          hyperparameters were sensitive, whether the critic or actor caused more issues, and
-          which implementation choices turned out to matter most.]
-        </p>
-
-        <div class="note-box">
-          <strong>Note:</strong><br />
-          This post focuses on the high-level idea and the implementation aspects that I found most
-          relevant in practice. It is not intended to be a fully formal derivation of the original
-          MPO paper. For the exact constrained objectives and derivations, the original paper should
-          be consulted directly.
-        </div>
 
         <h2>References</h2>
         <div class="ref-box">

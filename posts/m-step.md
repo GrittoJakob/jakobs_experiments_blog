@@ -58,4 +58,37 @@ $$
 
 Unlike the E-step, the Lagrangian does not admit a closed-form solution. Therefore, we solve this constrained optimization problem by alternating min-max optimization where we first fix our lagrangian multipliers $\eta$ and optimise for $\theta$ and then fix $\theta$ and solve vor $\eta$.
 
+$$
+          L(\theta, \eta_{\mu, j}, \eta_{\Sigma, j})
+          =
+          \int \mu_q(s)
+          \int q(a \mid s)\,\log \pi(a \mid s, \theta_i)\,da\,ds
+          +
+          \sum_j \eta_{\mu, j} (\epsilon_{\mu, j} - C_{\mu, j})
+          +
+          \sum_j \eta_{\Sigma, j} (\epsilon_{\Sigma, j} - C_{\Sigma, j})
+          $$
+
+$$
+C_{\mu, j}
+=
+\int \mu_q(s)\;
+\frac{1}{2}
+(\mu_j - \mu_{\text{target},j})^\top
+\Sigma_{\text{target},j}^{-1}
+(\mu_j - \mu_{\text{target},j})
+\, ds
+$$
+
+$$
+C_{\mu, j}
+=
+\int \mu_q(s)\;
+\frac{1}{2}
+(\mu_j - \mu_{\text{target},j})^\top
+\Sigma_{\text{target},j}^{-1}
+(\mu_j - \mu_{\text{target},j})
+\, ds
+$$
+
 
