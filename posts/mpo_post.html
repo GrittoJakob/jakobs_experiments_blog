@@ -250,16 +250,17 @@
         </ul>
 
         <h2>Policy Evaluation</h2>
+
         <p>
-          The critic can in principle be trained with a range of standard off-policy targets.
-          For example, one may use one-step temporal-difference learning, multi-step targets,
-          or more advanced return estimators such as Retrace.
-          While Deepmind suggests using the Retrace algorithm, in my implementation I used one-step TD learning because it is simple, stable, and does not depend on more
-          sequential storage and update logic. However, Deepmind suggests in their paper using the Retrace algorithm. 
+          The critic can be trained using a variety of standard off-policy targets, including
+          one-step temporal-difference learning, multi-step returns, or more advanced estimators
+          such as Retrace. While DeepMind proposes using the Retrace algorithm in the original
+          MPO paper, I used one-step TD learning in my implementation due to its simplicity,
+          stability, and independence from sequential rollout storage.
         </p>
 
         <p>
-          In my implementation, the critic target is
+          In my implementation, the critic target is given by
         </p>
 
         <p>
@@ -268,13 +269,16 @@
           =
           r
           +
-          m \gamma \, \mathbb{E}_{a' \sim \pi(\cdot \mid s')}[Q_{\text{target}}(s', a')],
+          m \gamma \, \mathbb{E}_{a' \sim \pi(\cdot \mid s')}
+          \left[
+            Q_{\text{target}}(s', a')
+          \right],
           $$
         </p>
 
         <p>
-          where \(m\) is a bootstrap mask that is zero at terminal transitions and one otherwise.
-          The current critic prediction is
+          where \( m \) is a bootstrap mask that is zero for terminated transitions and one otherwise.
+          The current critic estimate is
         </p>
 
         <p>
@@ -284,7 +288,7 @@
         </p>
 
         <p>
-          and the critic is trained with a mean squared error objective:
+          and the critic is trained by minimizing the mean squared error between target and prediction:
         </p>
 
         <p>
@@ -292,7 +296,7 @@
           \mathcal{L}_{\text{critic}}(\phi)
           =
           \left(
-            q_{\text{target}} - q_{\text{current}}
+            Q_{\text{target}} - Q_{\text{current}}
           \right)^2.
           $$
         </p>
@@ -589,6 +593,13 @@
           making such samples rare and reducing the influence of the penalty term.
         </p>
 
+         <div class="repo-box">
+          <strong>Implementation E-Step:</strong><br />
+          <a href="https://github.com/GrittoJakob/mpo_experiments/blob/mpo_multitask/mpo/algorithm/expectation_step.py" target="_blank" rel="noreferrer">
+            → View E-Step implementation
+          </a>
+        </div>
+
         <h2>M-Step</h2>
 
         <p>
@@ -663,6 +674,14 @@
         <p>
           Unlike the E-step, the Lagrangian does not admit a closed-form solution. Therefore, we solve this constrained optimization problem by alternating min-max optimization where we first fix our lagrangian multipliers \( \eta \) and optimise for \( \theta \), and then fix \( \theta \) and solve for \( \eta \).
         </p>
+
+        <div class="repo-box">
+          <strong>Implementation M-Step:</strong><br />
+          <a href="https://github.com/GrittoJakob/mpo_experiments/blob/mpo_multitask/mpo/algorithm/maximization_step.py" target="_blank" rel="noreferrer">
+            → View M-Step implementation
+          </a>
+        </div>
+
 
         <h2>Why is MPO Interesting?</h2>
         <p>
@@ -768,7 +787,7 @@ for each training step:
         </div>
 
         <footer>
-          Written by [Your Name] · [Optional affiliation or note]
+          Written by Jakob Gritto 
         </footer>
       </article>
     </main>
