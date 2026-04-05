@@ -200,7 +200,7 @@
 
         <p class="lead">
           Maximum a Posteriori Policy Optimization (MPO) is an off-policy actor-critic
-          algorithm based on an EM-style policy improvement procedure. In my view, MPO is
+          algorithm based on an EM-style policy improvement procedure <sup><a href="#ref-mpo">[1]</a></sup>. In my view, MPO is
           particularly interesting because it is often more robust to hyperparameter choices
           than many other off-policy methods, while also using a policy update that does not
           fit neatly into the usual categories of pure policy-gradient or value-gradient methods.
@@ -469,7 +469,7 @@
 
         <p>
           This corresponds to a softmax over sampled Q-values and is the form used in
-          practical implementations as proposed in [cite 2].
+          practical implementations as proposed in <sup><a href="#ref-rerpi">[2]</a></sup>.
         </p>
 
         <p>
@@ -505,7 +505,7 @@
           actions, for which the critic may assign unreliable values because those samples were never
           observed during training. This can destabilize learning. To mitigate this issue, we include
           an additional out-of-bounds action penalty in the E-step, following the multi-objective MPO
-          implementation by Google DeepMind \cite{acme_mpo_py}.
+          implementation <sup><a href="#ref-acme-mpo">[3]</a></sup>.
         </p>
 
         <p>
@@ -629,7 +629,7 @@
         <p>
           The original paper proposes a decoupled version of the M-step, where the KL divergence is separated into contributions of the mean and the covariance of the policy.
           Furthermore, when using a diagonal covariance matrix, these KL terms can be computed independently for each action dimension.
-          This allows us not only to control the average KL, but also to constrain the update of each action dimension separately.
+          This allows us not only to control the average KL, but also to constrain the update of each action dimension separately </sub> ><a href="#ref-rerpi">[2]</a></sup>.
           This leads to the following objective:
         </p>
 
@@ -710,26 +710,34 @@
         <h2>References</h2>
         <div class="ref-box">
           <ul>
-            <li>
-              Abdolmaleki, A., Neunert, M., Lampe, T., Siegel, N., Song, H., Springenberg, J. T.,
-              Tassa, Y., Riedmiller, M., and Hadsell, R.
+            <li id="ref-mpo">
+              Abdolmaleki, A., Springenberg, J. T., Tassa, Y., Munos, R., Heess, N., and
+              Riedmiller, M.
               <em>Maximum a Posteriori Policy Optimisation.</em>
-              [Add year / conference details as desired]
+              ICLR, 2018. arXiv:1806.06920.
+            </li>
+            <li id="ref-rerpi">
+              Abdolmaleki, A., Springenberg, J. T., Degrave, J., Bohez, S., Tassa, Y.,
+              Belov, D., Heess, N., and Riedmiller, M.
+              <em>Relative Entropy Regularized Policy Iteration.</em>
+              arXiv:1812.02256, 2018.
             </li>
             <li>
               Bishop, C. M.
               <em>Pattern Recognition and Machine Learning.</em>
               Springer, 2006.
             </li>
-            <li>
-              [Add additional references here, e.g. Retrace, actor-critic background, Meta-RL papers, RL², etc.]
+            <li id="ref-acme-mpo">
+              Google DeepMind.
+              <em>Acme: <code>acme/tf/losses/mpo.py</code>.</em>
+              GitHub repository, master branch, accessed 5 April 2026.
             </li>
           </ul>
         </div>
 
         <div class="repo-box">
           <strong>Code:</strong><br />
-          <a href="[INSERT GITHUB LINK]" target="_blank" rel="noreferrer">
+          <a href="https://github.com/GrittoJakob/mpo_experiments" target="_blank" rel="noreferrer">
             → View implementation on GitHub
           </a>
         </div>
