@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MPO Results: Experiments and Results</title>
+    <meta
+      name="description"
+      content="Experimental results and observations for Maximum a Posteriori Policy Optimization (MPO), including setup, comparisons, ablations, and discussion."
+    />
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+    />
+    <link rel="stylesheet" href="../css/styles.css" />
+    <link id="theme-file" rel="stylesheet" href="../css/theme-light.css" />
+    <link rel="stylesheet" href="../css/post.css" />
+
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <header>
+      <div class="wrap nav">
+        <a class="brand" href="../index.html">My Experiments Blog</a>
+        <a href="../index.html">← Back to the overview</a>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <article>
+        <a class="back-link" href="../index.html">← All posts</a>
+
+        <div class="meta">11. April 2026 · MPO · Reinforcement Learning · Results</div>
+
+        <h1>MPO Results: Experiments and Results</h1>
+
+        <p class="lead">
+          This post presents the experimental results of my MPO implementation for continuous-control tasks, in meta-reiforcment learning and 
+          multi-task settings. We compare the results of the MPO algorithm to the resulsts of a PPO baseline and Rl²-PPO version, which my team-college in our project for university implemented. 
+        </p>
+        
+        <div class="note-box">
+          <strong>Previous post.</strong>
+          This post builds directly on the theory and implementation details discussed in
+          <a href="mpo_post.html">MPO Algorithm: Theory and Implementation Details</a>.
+        </div>
+
+
+        <h2>Overview</h2>
+            <p>
+            As mentioned in my previous post, this preject started as part of an lecture at TUM. Me and my teammate, both experimented to facilitate the sim-2-real transfer by meta-reinforcement learning. 
+            While I implemented the MPO and RL²-MPO, he worked on the RL²-PPO and PPO as a baseline algorithm. Then, we compared our algorithms in different tasks: meta-reinforcement learning and robusts multi-task both regarding the performance and 
+            sample efficiency. 
+            While the RL²-MPO version remains promising, it suffers from very runtime costs, thats why it was not possible to train the algorithm robustly. For more information on the RL²-MPO variant click here: [Link to below]
+            </p>
+
+
+        <div class="tag-row">
+          <span class="tag">MPO</span>
+          <span class="tag">RL</span>
+          <span class="tag">Experiments</span>
+          <span class="tag">Results</span>
+        </div>
+
+        <h2>Experimental Setup</h2>
+        <p>
+          All experiments were run with the MPO implementation described in the previous post.
+          Unless otherwise stated, the same general training pipeline, optimizer settings,
+          and replay-buffer setup were used across experiments.
+        </p>
+
+        <ul>
+          <li><strong>Environment:</strong> Ant-v5</li>
+          <li><strong>Batch size:</strong> 1024</li>
+          <li><strong>Replay buffer size:</strong> 1000000</li>
+          <li><strong>Number of action samples in E-step:</strong> 20</li>
+          <li><strong>Evaluation metric:</strong> episodic return</li>
+        </ul>
+
+        <h2>Architecture</h2>
+
+            <p>
+            The following figure illustrates the overall architecture of the MPO training setup.
+            </p>
+
+            <div style="text-align: center; margin-top: 1rem;">
+            <img
+                src="../images/MPO_architecture.png"
+                alt="Architecture of the MPO training pipeline"
+                style="max-width: 100%; border-radius: 12px;"
+            />
+            </div>
+      
+        <div class="repo-box">
+          <strong>Code networks:</strong><br />
+          <a
+            href="https://github.com/GrittoJakob/mpo_experiments/tree/mpo_multitask/nets"
+            target="_blank"
+            rel="noreferrer"
+          >
+            → View implementation of actor and critic on GitHub
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 1rem;">
+          <img
+            src="../images/mpo_main_results.png"
+            alt="Main MPO training results"
+            style="max-width: 100%; border-radius: 12px;"
+          />
+        </div>
+
+        <h2> Robust-Multitask Experiments</h2>
+        
+        <h3>Setting</h3>
+        <p>
+            We trained our policies to run to different target goals which which were randomly sampled during training. As a task-hint we provided the nomilized distance to goal and the sin(alpha) cos(alpha) angles to goal.
+            Additionally to reaching different goals, we injected random noise (ERFI) to the joints of the ant. [One sentence to ERFI benefits: easy to implement and less effort than domain randomization]. 
+            For evaluation we used to different maneuvers, which our ants had to run under different ERFI noise level. 
+            [picture] placeholder
+            In order to achieve the different goals, we had to change the default reward function of the ant. Our new reward function was the following: 
+            ... placeholder...
+            For training the RL-PPO version, curriculum learning was needed. 
+        </p>
+
+        <h3>Results</h3>
+
+        Firstly, we compare the sample efficiency. This can be seen in figure...
+        [figure]
+        As may can see, MPO is way more sample efficient, but has a higher variance in evaluation returns, while RL²-PPO lacks regarding sample-efficiency, but has more stable evaluation results. 
+        I have to add, that unlike the RL²-PPO version, I could not use curriculum training and I did not hyperparameter tuning for that task. The hyperparameter used in this experiments where the same as in the single task training and without ERFI noise. 
+        Whie MPO achieves great sample efficiency its runtime is still very high which can be seen in figure 2. For simple environments like Ant Mujoco its sample efficiency is not that much of a benefit. 
+
+        Than we compare the results of the algorithms regarding perfomance during our evaluation tracks.
+        As we can see in figure ... MPO achieves constantly higher perfomance results, compared to RL²-PPO and PPO. But it again suffers from a higher variance. Still, this is a great results for MPO. 
+
+
+        <h3>Tanh on the Mean</h3>
+        <p>
+          Another design choice is whether tanh is applied to the mean of the Gaussian policy.
+          This changes how actions are constrained and may influence both exploration and
+          early optimization.
+        </p>
+
+        <div style="text-align: center; margin-top: 1rem;">
+          <img
+            src="../images/mpo_tanh_mean_plot.png"
+            alt="Tanh mean ablation"
+            style="max-width: 100%; border-radius: 12px;"
+          />
+        </div>
+
+        <div class="note-box">
+          <strong>Summary.</strong>
+          This post focused on the empirical side of MPO: training behaviour, practical
+          observations, and implementation ablations. Together with the previous theory and
+          implementation post, it forms a complete overview of this MPO project.
+        </div>
+
+        <div class="repo-box">
+          <strong>Related post:</strong><br />
+          <a href="mpo_post.html">
+            → Read MPO Algorithm: Theory and Implementation Details
+          </a>
+        </div>
+
+        <footer>
+          Written by Jakob Gritto
+        </footer>
+      </article>
+    </main>
+  </body>
+</html>

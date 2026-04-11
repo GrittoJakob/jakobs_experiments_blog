@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MPO – Explanation and Implementation Details</title>
+    <title>MPO Algorithm: Theory and Implementation Details</title>
     <meta
       name="description"
       content="A practical overview of Maximum a Posteriori Policy Optimization (MPO), including motivation, core ideas, implementation notes, and references."
@@ -14,174 +14,18 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
     />
+
+    <link rel="stylesheet" href="../css/styles.css" />
+    <link id="theme-file" rel="stylesheet" href="../css/theme-light.css" />
+    <link rel="stylesheet" href="../css/post.css" />
+
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
     <script
       defer
       src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
     ></script>
-
-    <style>
-      :root {
-        --bg: #f7f7f5;
-        --panel: #ffffff;
-        --text: #1f2328;
-        --muted: #5f6b7a;
-        --border: #d8dee4;
-        --link: #0969da;
-        --accent: #111827;
-        --max: 860px;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
-        background: var(--bg);
-        color: var(--text);
-        line-height: 1.7;
-      }
-
-      a {
-        color: var(--link);
-        text-decoration: none;
-      }
-
-      a:hover {
-        text-decoration: underline;
-      }
-
-      .wrap {
-        width: min(100% - 2rem, var(--max));
-        margin: 0 auto;
-      }
-
-      header {
-        border-bottom: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.88);
-        backdrop-filter: blur(10px);
-      }
-
-      .nav {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem 0;
-      }
-
-      .brand {
-        font-weight: 700;
-        color: var(--accent);
-      }
-
-      main {
-        padding: 2rem 0 4rem;
-      }
-
-      article {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 2rem;
-      }
-
-      .back-link {
-        display: inline-block;
-        margin-bottom: 1.25rem;
-        font-weight: 600;
-      }
-
-      .meta {
-        color: var(--muted);
-        font-size: 0.95rem;
-        margin-bottom: 0.75rem;
-      }
-
-      h1, h2, h3 {
-        line-height: 1.2;
-        margin-top: 0;
-      }
-
-      h1 {
-        font-size: clamp(2rem, 4vw, 2.8rem);
-        margin-bottom: 0.75rem;
-      }
-
-      h2 {
-        margin-top: 2rem;
-        margin-bottom: 0.75rem;
-      }
-
-      .lead {
-        font-size: 1.1rem;
-        color: var(--muted);
-      }
-
-      .tag-row {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        margin-top: 1.5rem;
-      }
-
-      .tag {
-        font-size: 0.85rem;
-        padding: 0.25rem 0.6rem;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        color: var(--muted);
-      }
-
-      .repo-box,
-      .note-box,
-      .ref-box {
-        margin-top: 1.5rem;
-        padding: 1rem 1.1rem;
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        background: #fafafa;
-      }
-
-      code {
-        background: #f1f3f5;
-        padding: 0.12rem 0.35rem;
-        border-radius: 6px;
-      }
-
-      pre {
-        background: #111827;
-        color: #f9fafb;
-        padding: 1rem;
-        border-radius: 12px;
-        overflow-x: auto;
-      }
-
-      ul {
-        padding-left: 1.2rem;
-      }
-
-      li + li {
-        margin-top: 0.45rem;
-      }
-
-      footer {
-        margin-top: 1.5rem;
-        color: var(--muted);
-        font-size: 0.95rem;
-      }
-
-      @media (max-width: 640px) {
-        article {
-          padding: 1.25rem;
-          border-radius: 14px;
-        }
-      }
-    </style>
   </head>
+
   <body>
     <header>
       <div class="wrap nav">
@@ -340,8 +184,8 @@
           whose exact posterior is difficult to compute. EM introduces an auxiliary
           distribution and iteratively improves a lower bound on the original objective. The
           E-step updates the auxiliary distribution, while the M-step updates the model parameters
-          given that distribution.
-        </p>
+          given that distribution. For a more detailed discussion of the EM algorithm, see Chapter 9 
+          in <sup><a href="#ref-mpo">[3]</a></sup>.
 
         <p>
           MPO does not use EM in exactly the same probabilistic way, but the analogy is
@@ -411,7 +255,7 @@
 
         <p>
           where \( \eta \ge 0 \) is the Lagrange multiplier for the KL constraint and
-          \( \gamma(s) \) enforces normalization.
+          \( \gamma \) enforces normalization.
         </p>
 
         <p>
@@ -713,9 +557,16 @@
           and comparisons will be presented in a follow-up post.
         </div>
 
+        <div class="repo-box">
+          <strong>Code:</strong><br />
+          <a href="https://github.com/GrittoJakob/mpo_experiments" target="_blank" rel="noreferrer">
+            → View implementation on GitHub
+          </a>
+        </div>
+
         <h2>References</h2>
         <div class="ref-box">
-          <ul>
+          <ol>
             <li id="ref-mpo">
               Abdolmaleki, A., Springenberg, J. T., Tassa, Y., Munos, R., Heess, N., and
               Riedmiller, M.
@@ -738,15 +589,10 @@
               <em>Acme: <code>acme/tf/losses/mpo.py</code>.</em>
               GitHub repository, master branch, accessed 5 April 2026.
             </li>
-          </ul>
+          </ol>
         </div>
 
-        <div class="repo-box">
-          <strong>Code:</strong><br />
-          <a href="https://github.com/GrittoJakob/mpo_experiments" target="_blank" rel="noreferrer">
-            → View implementation on GitHub
-          </a>
-        </div>
+
 
         <footer>
           Written by Jakob Gritto 

@@ -1,0 +1,19 @@
+:root {
+  --bg: #f7f7f5;
+  --panel: #ffffff;
+  --text: #1f2328;
+  --muted: #5f6b7a;
+  --border: #d8dee4;
+  --link: #0969da;
+  --accent: #111827;
+  --max: 860px;
+
+  --header-bg: rgba(255, 255, 255, 0.82);
+  --button-bg: #ffffff;
+  --image-border: #ffffff;
+  --image-shadow: rgba(17, 24, 39, 0.12);
+  --image-fallback: linear-gradient(135deg, #f1f3f5, #e5e7eb);
+  --code-bg: #f1f3f5;
+  --pre-bg: #111827;
+  --pre-text: #f9fafb;
+}
