@@ -40,7 +40,7 @@
 
         <div class="meta">April 1, 2026 · MPO · Reinforcement Learning</div>
 
-        <h1>MPO Algorithm: Explanation and Implementation Details</h1>
+        <h1>MPO Algorithm: Theory and Implementation Details</h1>
 
         <p class="lead">
           Maximum a Posteriori Policy Optimization (MPO) is an off-policy actor-critic
@@ -347,9 +347,9 @@
         <p>
           In continuous control, sampling from our policy \( \pi(a \mid s) \) can produce out-of-bound
           actions, for which the critic may assign unreliable values because those samples were never
-          observed during training. This can destabilize learning. To mitigate this issue, we include
+          observed during training. This can destabilize learning. To mitigate this issue, I included
           an additional out-of-bounds action penalty in the E-step, following the multi-objective MPO
-          implementation <sup><a href="#ref-acme-mpo">[3]</a></sup>.
+          implementation <sup><a href="#ref-acme-mpo">[3]</a></sup>. Hence, the action penalty is actually not part of the MPO.
         </p>
 
         <p>
@@ -473,7 +473,7 @@
         <p>
           The original paper proposes a decoupled version of the M-step, where the KL divergence is separated into contributions of the mean and the covariance of the policy.
           Furthermore, when using a diagonal covariance matrix, these KL terms can be computed independently for each action dimension.
-          This allows us not only to control the average KL, but also to constrain the update of each action dimension separately </sub> ><a href="#ref-rerpi">[2]</a></sup>.
+          This allows us not only to control the average KL, but also to constrain the update of each action dimension separately </sub> <a href="#ref-rerpi">[2]</a></sup>.
           This leads to the following objective:
         </p>
 
@@ -595,7 +595,7 @@
 
 
         <footer>
-          Written by Jakob Gritto 
+          Written by Jakob Gritto · This post was linguistically revised with AI support
         </footer>
       </article>
     </main>

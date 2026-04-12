@@ -2,6 +2,13 @@ main {
   padding: 2rem 0 4rem;
 }
 
+.lead {
+  font-size: 1.1rem;
+  color: var(--muted);
+  max-width: none;
+  width: 100%;
+}
+
 article {
   background: var(--panel);
   border: 1px solid var(--border);

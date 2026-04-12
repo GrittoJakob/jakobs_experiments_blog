@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MPO Results: Experiments and Results</title>
+    <title>MPO Results: Meta-RL and Robust Multi-Task Experiments</title>
     <meta
       name="description"
-      content="Experimental results and observations for Maximum a Posteriori Policy Optimization (MPO), including setup, comparisons, ablations, and discussion."
+      content="Experimental results for MPO in meta-reinforcement learning and robust multi-task settings, including comparisons to PPO and RL²-PPO."
     />
 
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
@@ -23,6 +23,59 @@
       defer
       src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
     ></script>
+
+    <style>
+      .figure-placeholder {
+        margin-top: 1rem;
+        padding: 1.4rem;
+        border: 2px dashed #b8b8b8;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.02);
+        text-align: center;
+        color: #666;
+      }
+
+      .figure-placeholder strong {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: #333;
+      }
+
+      .figure-caption {
+        margin-top: 0.75rem;
+        font-size: 0.95rem;
+        color: #666;
+        text-align: center;
+      }
+
+      .math-box {
+        margin: 1.2rem 0;
+        padding: 1rem 1.2rem;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.03);
+      }
+
+      .references-box {
+        margin-top: 2rem;
+        padding: 1.2rem 1.4rem;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.03);
+      }
+
+      .references-box h2 {
+        margin-top: 0;
+      }
+
+      .references-box ol {
+        margin: 0.8rem 0 0;
+        padding-left: 1.25rem;
+      }
+
+      .references-box li {
+        margin-bottom: 0.9rem;
+        line-height: 1.6;
+      }
+    </style>
   </head>
   <body>
     <header>
@@ -38,142 +91,397 @@
 
         <div class="meta">11. April 2026 · MPO · Reinforcement Learning · Results</div>
 
-        <h1>MPO Results: Experiments and Results</h1>
+        <h1>MPO Results: Meta-RL and Robust Multi-Task Experiments</h1>
 
         <p class="lead">
-          This post presents the experimental results of my MPO implementation for continuous-control tasks, in meta-reiforcment learning and 
-          multi-task settings. We compare the results of the MPO algorithm to the resulsts of a PPO baseline and Rl²-PPO version, which my team-college in our project for university implemented. 
+          This post presents the experimental results of my MPO implementation in
+          continuous-control, meta-reinforcement learning, and robust multi-task settings.
+          The main focus is on MPO, while PPO and RL²-PPO are included as benchmarking
+          baselines, since comparing these approaches was one of the original goals of our
+          university project.
         </p>
-        
+
         <div class="note-box">
           <strong>Previous post.</strong>
           This post builds directly on the theory and implementation details discussed in
-          <a href="mpo_post.html">MPO Algorithm: Theory and Implementation Details</a>.
+          <a href="mpo_theory_post.html">MPO Algorithm: Theory and Implementation Details</a>.
         </div>
-
-
-        <h2>Overview</h2>
-            <p>
-            As mentioned in my previous post, this preject started as part of an lecture at TUM. Me and my teammate, both experimented to facilitate the sim-2-real transfer by meta-reinforcement learning. 
-            While I implemented the MPO and RL²-MPO, he worked on the RL²-PPO and PPO as a baseline algorithm. Then, we compared our algorithms in different tasks: meta-reinforcement learning and robusts multi-task both regarding the performance and 
-            sample efficiency. 
-            While the RL²-MPO version remains promising, it suffers from very runtime costs, thats why it was not possible to train the algorithm robustly. For more information on the RL²-MPO variant click here: [Link to below]
-            </p>
-
 
         <div class="tag-row">
           <span class="tag">MPO</span>
           <span class="tag">RL</span>
+          <span class="tag">Meta-RL</span>
           <span class="tag">Experiments</span>
           <span class="tag">Results</span>
         </div>
 
+        <h2>Overview</h2>
+        <p>
+          This project was carried out as part of a course at TUM and focused on improving
+          robustness for legged locomotion in simulation. The central idea was to study
+          whether meta-reinforcement learning can facilitate sim-to-real transfer by making
+          policies adapt more effectively to changing goals and disturbances.
+        </p>
+
+        <p>
+          In our team setup, I worked on MPO and RL²-MPO, while my teammate implemented
+          PPO and RL²-PPO. The final comparison therefore combines an off-policy approach
+          with a recurrent, meta-RL on-policy baseline <sup><a href="#ref-duan">[1]</a></sup> and PPO as non-recurrent and popular on-policy algorithm <sup><a href="#ref-ppo">[2]</a></sup>. 
+          Since RL²-MPO turned out to be too expensive and unstable to train reliably within the project scope, this
+          results page focuses on MPO and compares it mainly against PPO and RL²-PPO in
+          meta-RL and robust multi-task experiments.
+        </p>
+
         <h2>Experimental Setup</h2>
         <p>
-          All experiments were run with the MPO implementation described in the previous post.
-          Unless otherwise stated, the same general training pipeline, optimizer settings,
-          and replay-buffer setup were used across experiments.
+          Unless otherwise stated, all MPO experiments were run with the implementation
+          described in the previous post. Across experiments, the same overall training
+          pipeline, replay-buffer setup, and optimizer configuration were used.
         </p>
 
         <ul>
-          <li><strong>Environment:</strong> Ant-v5</li>
+          <li><strong>Environment:</strong> Gymnasium Ant-v5</li>
           <li><strong>Batch size:</strong> 1024</li>
-          <li><strong>Replay buffer size:</strong> 1000000</li>
-          <li><strong>Number of action samples in E-step:</strong> 20</li>
+          <li><strong>Replay buffer size:</strong> 1,000,000</li>
+          <li><strong>Number of action samples in the E-step:</strong> 20</li>
           <li><strong>Evaluation metric:</strong> episodic return</li>
         </ul>
 
-        <h2>Architecture</h2>
-
-            <p>
-            The following figure illustrates the overall architecture of the MPO training setup.
-            </p>
-
-            <div style="text-align: center; margin-top: 1rem;">
-            <img
-                src="../images/MPO_architecture.png"
-                alt="Architecture of the MPO training pipeline"
-                style="max-width: 100%; border-radius: 12px;"
-            />
-            </div>
-      
         <div class="repo-box">
-          <strong>Code networks:</strong><br />
+          <strong>Hyperparameters:</strong><br />
+          <a
+            href="https://github.com/GrittoJakob/mpo_experiments/blob/mpo_multitask/configs/Robust_Ant_v5.py"
+            target="_blank"
+            rel="noreferrer"
+          >
+            → View hyperparameters on GitHub
+          </a>
+        </div>
+
+        <h2>Actor & Critic Networks</h2>
+
+        <p>
+          Both actor and critic are implemented with an MLP architecture. As input, the actor
+          receives the observation of the environment and a concatenated task hint, which
+          depends on the experiment and will be mentioned later in this post. The output of
+          the actor is the mean and variance of the Gaussian distribution from which the
+          actions are sampled. The critic also receives the observations, the task hint, and
+          the sampled actions as input and outputs the Q-value.
+        </p>
+
+        <div id="figure-1" style="text-align: center; margin-top: 1rem;">
+          <img
+            src="../images/MPO_architecture.png"
+            alt="MPO architecture of actor and critic"
+            style="max-width: 70%; border-radius: 12px;"
+          />
+          <div class="figure-caption">
+            MPO architecture of actor and critic
+          </div>
+        </div>
+
+        <div class="repo-box">
+          <strong>Code actor & critic:</strong><br />
           <a
             href="https://github.com/GrittoJakob/mpo_experiments/tree/mpo_multitask/nets"
             target="_blank"
             rel="noreferrer"
           >
-            → View implementation of actor and critic on GitHub
+            → View actor and critic implementation on GitHub
           </a>
         </div>
 
-        <div style="text-align: center; margin-top: 1rem;">
-          <img
-            src="../images/mpo_main_results.png"
-            alt="Main MPO training results"
-            style="max-width: 100%; border-radius: 12px;"
-          />
-        </div>
-
-        <h2> Robust-Multitask Experiments</h2>
-        
-        <h3>Setting</h3>
+        <h2>Robust Multi-Task Setting</h2>
         <p>
-            We trained our policies to run to different target goals which which were randomly sampled during training. As a task-hint we provided the nomilized distance to goal and the sin(alpha) cos(alpha) angles to goal.
-            Additionally to reaching different goals, we injected random noise (ERFI) to the joints of the ant. [One sentence to ERFI benefits: easy to implement and less effort than domain randomization]. 
-            For evaluation we used to different maneuvers, which our ants had to run under different ERFI noise level. 
-            [picture] placeholder
-            In order to achieve the different goals, we had to change the default reward function of the ant. Our new reward function was the following: 
-            ... placeholder...
-            For training the RL-PPO version, curriculum learning was needed. 
+          In the robust multi-task experiments, the ant was trained to move towards different
+          target goals that were randomly sampled during training.
         </p>
 
-        <h3>Results</h3>
-
-        Firstly, we compare the sample efficiency. This can be seen in figure...
-        [figure]
-        As may can see, MPO is way more sample efficient, but has a higher variance in evaluation returns, while RL²-PPO lacks regarding sample-efficiency, but has more stable evaluation results. 
-        I have to add, that unlike the RL²-PPO version, I could not use curriculum training and I did not hyperparameter tuning for that task. The hyperparameter used in this experiments where the same as in the single task training and without ERFI noise. 
-        Whie MPO achieves great sample efficiency its runtime is still very high which can be seen in figure 2. For simple environments like Ant Mujoco its sample efficiency is not that much of a benefit. 
-
-        Than we compare the results of the algorithms regarding perfomance during our evaluation tracks.
-        As we can see in figure ... MPO achieves constantly higher perfomance results, compared to RL²-PPO and PPO. But it again suffers from a higher variance. Still, this is a great results for MPO. 
-
-
-        <h3>Tanh on the Mean</h3>
         <p>
-          Another design choice is whether tanh is applied to the mean of the Gaussian policy.
-          This changes how actions are constrained and may influence both exploration and
-          early optimization.
+          To support this, we provided an explicit task hint as part of the observation.
+          This task hint consisted of the normalized distance to the goal as well as the
+          relative angle between the ant's heading and the goal direction, encoded through
+          \( \sin(\alpha) \) and \( \cos(\alpha) \).
         </p>
 
-        <div style="text-align: center; margin-top: 1rem;">
-          <img
-            src="../images/mpo_tanh_mean_plot.png"
-            alt="Tanh mean ablation"
-            style="max-width: 100%; border-radius: 12px;"
-          />
+        <p>
+          To make the agent solve directed goal-reaching tasks, we modified the default reward
+          function of the ant environment. In addition to the healthy reward, control cost,
+          and contact cost, we introduced a targeted velocity term, a sparse goal bonus, and
+          a death penalty.
+        </p>
+
+        <div class="math-box">
+          $$
+          R = \lambda_h R_{\mathrm{healthy}}
+          + \lambda_v R_{\mathrm{vel}}
+          - \lambda_{cr} C_{\mathrm{ctrl}}
+          - \lambda_{co} C_{\mathrm{contact}}
+          + R_{\mathrm{goal}}
+          - C_{\mathrm{death}}
+          $$
         </div>
+
+        <ul>
+          <li><strong>Reached-goal reward:</strong> \( R_{\mathrm{goal}} = 10 \)</li>
+          <li><strong>Death penalty:</strong> \( C_{\mathrm{death}} = 50 \)</li>
+        </ul>
+
+        <p>
+          In addition, we injected external random forces into the joints of the ant through
+          ERFI. This makes the task more challenging and acts as a simple but effective
+          robustness mechanism. Compared to full domain randomization, ERFI is easy to
+          implement and requires much less manual design, while still testing whether a
+          policy can remain stable under perturbations. For more information about ERFI,
+          please see <a href="#ref-campanaro">Campanaro et al.</a>.
+        </p>
+
+        <p>
+          For the RL²-PPO experiments, curriculum learning was required to obtain stable
+          training in this more difficult setting. For MPO, in contrast, I used essentially
+          the same hyperparameter setup as in the single-task experiments and did not tune
+          specifically for the robust multi-task scenario.
+        </p>
+
+        <h2>Sample Efficiency and Stability</h2>
+
+        <div id="figure-2" style="text-align: center; margin-top: 1rem;">
+          <img
+            src="../images/mpo_training_curve.png"
+            alt="Sample-efficiency and runtime comparison between MPO and RL²-PPO"
+            style="max-width: 70%; border-radius: 12px;"
+          />
+          <div class="figure-caption">
+            Top: Episodic return over sample efficiency<br />
+            Bottom: Episodic return over runtime
+          </div>
+        </div>
+
+        <p>
+          The biggest difference between MPO and RL²-PPO appears in sample efficiency.
+          MPO improves much faster with respect to environment interactions and reaches high
+          returns substantially earlier during training. In our experiments, MPO crossed an
+          evaluation return above 7000 after roughly 2 million environment steps, which
+          highlights the strong data efficiency of the off-policy update.
+        </p>
+
+        <p>
+          At the same time, MPO showed noticeably higher variance in the evaluation returns.
+          RL²-PPO learned more slowly, but its learning curve was typically smoother and more
+          stable across training.
+        </p>
+
+        <p>
+          It should also be noted that the MPO configuration in this benchmark was not tuned
+          specifically for the robust multi-task setting. I did not use curriculum learning,
+          and the hyperparameters were completely transferred from single-task training without
+          ERFI noise. Even under these conditions, MPO still achieved very strong sample
+          efficiency, which makes the result particularly encouraging.
+        </p>
+
+        <p>
+          Although MPO is clearly more sample efficient, this advantage does not directly
+          translate into a lower wall-clock cost. In our setup, MPO remained computationally
+          expensive and required roughly eight hours for around five million environment
+          steps. This means that its strong sample efficiency comes at the price of a
+          comparatively high runtime. For a simple MuJoCo environment such as Ant-v5, this
+          reduces the practical benefit of MPO's sample efficiency.
+        </p>
+
+        <h2>Robust Multi-Task Performance</h2>
+
+        <p>
+          We finally evaluated the trained RL²-PPO, PPO, and MPO agents on two different
+          maneuver tracks, which were designed to test their ability to reach new targets.
+          These tracks were not seen during training. Additionally, we tested each agent
+          under different ERFI noise levels, including levels outside the training
+          distribution. The maximum noise level during training was 0.5 and during
+          evaluation 0.3. We tested each agent for 20 runs across all noise levels and both
+          tracks.
+        </p>
+
+        <div id="figure-3" style="text-align: center; margin-top: 1rem;">
+          <img
+            src="../images/evaluation_tracks.jpg"
+            alt="Evaluation maneuver tracks"
+            style="max-width: 80%; border-radius: 12px;"
+          />
+          <div class="figure-caption">
+            Evaluation maneuver tracks
+          </div>
+        </div>
+
+        <p>
+          In these evaluations in <a href="#figure-4">Figure 4</a>, MPO consistently achieved
+          stronger final performance than RL²-PPO and PPO. This indicates that MPO can
+          handle the robust multi-task setting very well, even though it does not explicitly
+          use a recurrent policy for online adaptation.
+        </p>
+
+        <p>
+          However, the same pattern as in training remained visible during evaluation:
+          MPO delivered better peak performance, but also exhibited higher variance. RL²-PPO
+          was typically more stable and less noisy, although its final performance was lower.
+          PPO and PPO-ERFI, the latter trained with ERFI noise, served mainly as baselines
+          and were clearly outperformed by the more advanced approaches.
+        </p>
+
+        <div id="figure-4" style="text-align: center; margin-top: 1rem;">
+          <img
+            src="../images/returns.png"
+            alt="Evaluation returns of RL²-PPO, PPO, PPO-ERFI and MPO"
+            style="max-width: 80%; border-radius: 12px;"
+          />
+          <div class="figure-caption">
+            Mean (bar) and standard deviation (error bar) across 20 runs for each noise
+            level and track
+          </div>
+        </div>
+
+        <h2>Meta-Reinforcement Learning Experiment</h2>
+        <p>
+          In order to examine the limits of MPO with an MLP actor in a meta-RL setting, we
+          tested our agent on a task with only two possible directions. As a task hint, the
+          agent received only the actions and rewards from the previous steps, without an
+          explicit task hint as in the multi-task setting.
+        </p>
+
+        <p>
+          The results can be seen in <a href="#figure-5">Figure 5</a>:
+        </p>
+
+        <div id="figure-5" style="text-align: center; margin-top: 1rem;">
+          <img
+            src="../images/MPO_Meta_RL.png"
+            alt="Evaluation returns of MPO for Meta-RL"
+            style="max-width: 70%; border-radius: 12px;"
+          />
+          <div class="figure-caption">
+            Episodic return over environment steps for MPO in the meta-RL setting
+          </div>
+        </div>
+
+        <p>
+          As we can see, MPO with an MLP architecture was able to reliably learn to infer
+          the task direction from previous rewards and actions alone. However, this remains
+          limited to small task distributions. An experiment with a similar random target-goal
+          setting as in the multi-task setting showed the limits of the MLP architecture.
+        </p>
+
+        <h2>RL²-MPO</h2>
+        <p>
+          Last but not least, I want to mention our experiments with the RL²-MPO variant.
+          As already mentioned, it was difficult to get it running reliably due to the high
+          runtime and some policy collapses. The high runtime in RL²-MPO is mainly caused by
+          the required BPTT (Backpropagation Through Time), which is performed very often in
+          our off-policy algorithm. However, the concept still seems promising. If I had more
+          time and computational resources, I would like to continue working on this, but due
+          to my limited resources I will focus on algorithms that do not require as much
+          computational effort.
+        </p>
+
+        <div id="figure-6" style="text-align: center; margin-top: 1rem;">
+          <img
+            src="../images/Rl2-mpo_plot.png"
+            alt="Learning curve of RL²-MPO"
+            style="max-width: 70%; border-radius: 12px;"
+          />
+          <div class="figure-caption">
+            Episodic return over environment steps for RL²-MPO
+          </div>
+        </div>
+
+        <p>
+          The following plot shows the learning curve over 5 million environment steps and a
+          runtime of about 8 hours. As you can see, the agent improves significantly and is
+          much more sample-efficient compared to the RL²-PPO baseline. However, the long
+          runtime was a major issue.
+        </p>
 
         <div class="note-box">
           <strong>Summary.</strong>
-          This post focused on the empirical side of MPO: training behaviour, practical
-          observations, and implementation ablations. Together with the previous theory and
-          implementation post, it forms a complete overview of this MPO project.
+          This post focused on the empirical behavior of MPO in meta-RL and robust
+          multi-task settings. PPO and RL²-PPO were included as benchmarking baselines,
+          while the main conclusion is that MPO offers excellent sample efficiency and strong
+          final performance, but still comes with notable variance and runtime costs.
+        </div>
+
+        <div class="references-box">
+          <h2>References</h2>
+          <ol>
+            <li id="ref-duan">
+              Y. Duan, J. Schulman, X. Chen, P. L. Bartlett, I. Sutskever, and
+              P. Abbeel, “RL²: Fast Reinforcement Learning via Slow Reinforcement
+              Learning,” 2016. [Online]. Available:
+              <a
+                href="https://arxiv.org/abs/1611.02779"
+                target="_blank"
+                rel="noreferrer"
+              >https://arxiv.org/abs/1611.02779</a>
+            </li>
+            <li id="ref-ppo">
+              J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov,
+              “Proximal Policy Optimization Algorithms,” 2017. [Online]. Available:
+              <a
+                href="https://arxiv.org/abs/1707.06347"
+                target="_blank"
+                rel="noreferrer"
+              >https://arxiv.org/abs/1707.06347</a>
+            </li>
+            <li id="ref-mpo">
+              A. Abdolmaleki, J. T. Springenberg, Y. Tassa, R. Munos, N. Heess, and
+              M. Riedmiller, “Maximum a Posteriori Policy Optimisation.” [Online].
+              Available:
+              <a
+                href="http://arxiv.org/abs/1806.06920"
+                target="_blank"
+                rel="noreferrer"
+              >http://arxiv.org/abs/1806.06920</a>
+            </li>
+            <li id="ref-campanaro">
+              L. Campanaro, S. Gangapurwala, W. Merkt, and I. Havoutis, “Learning
+              and Deploying Robust Locomotion Policies with Minimal Dynamics
+              Randomization,” vol. 242, pp. 578–590.
+            </li>
+            <li id="ref-blogpost">
+              J. Gritto, “MPO Algorithm: Theory and Implementation Details.”
+              [Online]. Available:
+              <a href="mpo_theory_post.html">mpo_theory_post.html</a>
+            </li>
+          </ol>
         </div>
 
         <div class="repo-box">
           <strong>Related post:</strong><br />
-          <a href="mpo_post.html">
+          <a href="mpo_theory_post.html">
             → Read MPO Algorithm: Theory and Implementation Details
           </a>
         </div>
 
         <footer>
-          Written by Jakob Gritto
+          Written by Jakob Gritto · This post was linguistically revised with AI support
         </footer>
       </article>
     </main>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const themeFile = document.getElementById("theme-file");
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme === "dark") {
+          themeFile.setAttribute("href", "../css/theme-light.css");
+        }
+
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "$", right: "$", display: false }
+          ],
+          throwOnError: false
+        });
+      });
+    </script>
   </body>
 </html>
