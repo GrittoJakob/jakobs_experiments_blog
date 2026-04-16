@@ -62,7 +62,7 @@
           This project originally started as part of a course at the Technical University
           of Munich. The initial goal was to explore whether sim-to-real transfer could be
           improved with meta-reinforcement learning. Since many current Meta-RL algorithms
-          suffer from poor sample efficiency, the idea was to combine RL<sup>2</sup> with a
+          suffer from poor sample efficiency, the idea was to combine RL<sup>2</sup> <sup><a href="#ref-duan">[2]</a></sup> with a
           strong off-policy learner, the MPO.
         </p>
 
@@ -184,9 +184,7 @@
           whose exact posterior is difficult to compute. EM introduces an auxiliary
           distribution and iteratively improves a lower bound on the original objective. The
           E-step updates the auxiliary distribution, while the M-step updates the model parameters
-          given that distribution. For a more detailed discussion of the EM algorithm, see Chapter 9 
-          in <sup><a href="#ref-mpo">[3]</a></sup>.
-
+          given that distribution. see <a href="#ref-bishop"> Bishop</a> (Chapter 9).
         <p>
           MPO does not use EM in exactly the same probabilistic way, but the analogy is
           very useful: first construct an improved non-parametric target distribution over actions,
@@ -255,7 +253,8 @@
 
         <p>
           where \( \eta \ge 0 \) is the Lagrange multiplier for the KL constraint and
-          \( \gamma \) enforces normalization.
+          \( \gamma \) enforces normalization. For more details on constrained optimization, see
+          <a href="#ref-nocedal2006"> Nocedal, J. and Wright, S. J.</a></sup> (Chapter 12).
         </p>
 
         <p>
@@ -313,7 +312,7 @@
 
         <p>
           This corresponds to a softmax over sampled Q-values and is the form used in
-          practical implementations as proposed in <sup><a href="#ref-rerpi">[2]</a></sup>.
+          practical implementations as proposed in <sup><a href="#ref-rerpi">[5]</a></sup>.
         </p>
 
         <p>
@@ -349,7 +348,7 @@
           actions, for which the critic may assign unreliable values because those samples were never
           observed during training. This can destabilize learning. To mitigate this issue, I included
           an additional out-of-bounds action penalty in the E-step, following the multi-objective MPO
-          implementation <sup><a href="#ref-acme-mpo">[3]</a></sup>. Hence, the action penalty is actually not part of the MPO.
+          implementation <sup><a href="#ref-acme-mpo">[6]</a></sup>. Hence, the action penalty is actually not part of the original MPO.
         </p>
 
         <p>
@@ -451,42 +450,62 @@
         </p>
 
         <p>
-          This constrained problem can be written in Lagrangian form as:
+          This constrained problem can be written the form as:
         </p>
 
-        <p>
+        <p>    
           $$
-          \max_{\pi}
-          \;
-          \int \mu_q(s)
-          \int q(a \mid s)\,\log \pi(a \mid s, \theta_i)\,da\,ds
-          \;-\;
-          \lambda
+          \begin{aligned}
+          \max_{\pi} \quad &
+          \int \mu_q(s)\int q(a \mid s)\,\log \pi(a \mid s,\theta)\,da\,ds \\
+          \text{s.t.} \quad &
           \int \mu_q(s)\,
           \mathrm{KL}\!\left(
-          \pi(a \mid s, \theta_i)\,\|\,\pi_{\text{target}}(a \mid s, \theta)
-          \right)
-          ds
+            \pi_{\text{target}}(a \mid s,\theta_i)\,\|\,\pi(a \mid s,\theta)
+          \right)\,ds
+          \le \epsilon
+          \end{aligned}
           $$
         </p>
 
         <p>
-          The original paper proposes a decoupled version of the M-step, where the KL divergence is separated into contributions of the mean and the covariance of the policy.
-          Furthermore, when using a diagonal covariance matrix, these KL terms can be computed independently for each action dimension.
-          This allows us not only to control the average KL, but also to constrain the update of each action dimension separately </sub> <a href="#ref-rerpi">[2]</a></sup>.
-          This leads to the following objective:
-        </p>
-
-        <p>
+          Introducing a Lagrange multiplier for the KL constraint and approximating the expectations with Monte Carlo samples yields
           $$
-          L(\theta, \eta_{\mu, j}, \eta_{\Sigma, j})
+          \max_{\theta}\min_{\alpha > 0}\; L(\theta,\alpha)
           =
-          \int \mu_q(s)
-          \int q(a \mid s)\,\log \pi(a \mid s, \theta_i)\,da\,ds
+          \sum_j \sum_i q_{ij}\,\log \pi_{\theta}(a_i \mid s_j)
           +
-          \sum_j \eta_{\mu, j} (\epsilon_{\mu, j} - C_{\mu, j})
+          \alpha \left(
+            \epsilon_{\pi}
+            -
+            \frac{1}{K}\sum_j
+            \mathrm{KL}\!\left(
+              \pi_{\text{target}}(a \mid s_j)\,\|\,\pi_{\theta}(a \mid s_j)
+            \right)
+          \right).
+          $$
+        </p>
+
+        <p>
+          The original paper proposes a decoupled version of the M-step, in which the policy update is split into two separate objectives.
+          Concretely, the neural network parameters \(\theta\) are optimized to maximize one objective for updating the policy mean while keeping the covariance fixed to that of the target policy, and a second objective for updating the policy covariance while keeping the mean fixed to that of the target policy.
+          Correspondingly, separate KL constraints are imposed for the mean and covariance updates.
+          When using a diagonal covariance matrix, these KL terms can furthermore be evaluated independently for each action dimension, allowing for finer control over the size of the update
+          <sup><a href="#ref-rerpi">[2]</a></sup>.
+        </p>
+        <p>
+          $$
+          \begin{aligned}
+          \max_{\theta}\min_{\eta_\mu > 0,\eta_\Sigma > 0}\; L(\theta,\eta_\mu,\eta_\Sigma)
+          =\;&
+          \sum_{j=1}^{K}\sum_{i=1}^{N} q_{ij}\,\log \pi_{\theta}(a_i \mid s_j;\Sigma=\Sigma_{\text{target}}) \\
+          &+
+          \sum_{j=1}^{K}\sum_{i=1}^{N} q_{ij}\,\log \pi_{\theta}(a_i \mid s_j;\mu=\mu_{\text{target}}) 
+          &+
+          \eta_\mu \bigl(\epsilon_\mu - C_\mu\bigr)
           +
-          \sum_j \eta_{\Sigma, j} (\epsilon_{\Sigma, j} - C_{\Sigma, j})
+          \eta_\Sigma \bigl(\epsilon_\Sigma - C_\Sigma\bigr)
+          \end{aligned}
           $$
         </p>
 
@@ -494,29 +513,23 @@
 
         <p>
           $$
-          C_{\Sigma, j}
+          C_\mu
           =
-          \int \mu_q(s)\;
-          \frac{1}{2}
-          \left(
-          \Sigma_{\text{target},j}^{-1}\Sigma_j
-          - 1
-          + \ln \frac{\Sigma_{\text{target},j}}{\Sigma_j}
+          \frac{1}{K}\sum_{j=1}^{K}
+          \mathrm{KL}\!\left(
+            \pi_{\text{target}}(a \mid s_j)\,\|\,\pi_{\theta}(a \mid s_j;\Sigma=\Sigma_{\text{target}})
           \right)
-          \, ds
           $$
         </p>
 
         <p>
           $$
-          C_{\mu, j}
+          C_\Sigma
           =
-          \int \mu_q(s)\;
-          \frac{1}{2}
-          (\mu_j - \mu_{\text{target},j})^\top
-          \Sigma_{\text{target},j}^{-1}
-          (\mu_j - \mu_{\text{target},j})
-          \, ds
+          \frac{1}{K}\sum_{j=1}^{K}
+          \mathrm{KL}\!\left(
+            \pi_{\text{target}}(a \mid s_j)\,\|\,\pi_{\theta}(a \mid s_j;\mu=\mu_{\text{target}})
+          \right)
           $$
         </p>
 
@@ -573,16 +586,31 @@
               <em>Maximum a Posteriori Policy Optimisation.</em>
               ICLR, 2018. arXiv:1806.06920.
             </li>
+            <li id="ref-duan">
+              Y. Duan, J. Schulman, X. Chen, P. L. Bartlett, I. Sutskever, and
+              P. Abbeel, “RL²: Fast Reinforcement Learning via Slow Reinforcement
+              Learning,” 2016. [Online]. Available:
+              <a
+                href="https://arxiv.org/abs/1611.02779"
+                target="_blank"
+                rel="noreferrer"
+              >https://arxiv.org/abs/1611.02779</a>
+            </li>
+            <li id="ref-bishop">
+              Bishop, C. M.
+              <em>Pattern Recognition and Machine Learning.</em>
+              Springer, 2006.
+            </li>
+            <li id="ref-nocedal2006">
+              Nocedal, J. and Wright, S. J.
+              <em>Numerical Optimization.</em>
+              2nd ed., Springer, 2006.
+            </li>
             <li id="ref-rerpi">
               Abdolmaleki, A., Springenberg, J. T., Degrave, J., Bohez, S., Tassa, Y.,
               Belov, D., Heess, N., and Riedmiller, M.
               <em>Relative Entropy Regularized Policy Iteration.</em>
               arXiv:1812.02256, 2018.
-            </li>
-            <li>
-              Bishop, C. M.
-              <em>Pattern Recognition and Machine Learning.</em>
-              Springer, 2006.
             </li>
             <li id="ref-acme-mpo">
               Google DeepMind.
