@@ -148,7 +148,7 @@
         <div class="repo-box">
           <strong>Implementation:</strong><br />
           <a href="https://github.com/GrittoJakob/mpo_experiments/blob/main/mpo/algorithm/td_learning.py" target="_blank" rel="noreferrer">
-            → View critic implementation
+            → View TD Learning implementation
           </a>
         </div>
 
@@ -184,11 +184,11 @@
           whose exact posterior is difficult to compute. EM introduces an auxiliary
           distribution and iteratively improves a lower bound on the original objective. The
           E-step updates the auxiliary distribution, while the M-step updates the model parameters
-          given that distribution. see <a href="#ref-bishop"> Bishop</a> (Chapter 9).
+          given that distribution. For a more detailled discussion on the EM-algorithm, see <a href="#ref-bishop"> Bishop</a> (Chapter 9).
         <p>
           MPO does not use EM in exactly the same probabilistic way, but the analogy is
           very useful: first construct an improved non-parametric target distribution over actions,
-          then project that target back into the parametric policy class. 
+          then fit the current policy to that target. 
         </p>
 
         <h2>E-Step</h2>
@@ -258,7 +258,7 @@
         </p>
 
         <p>
-          Taking derivatives w.r.t. \( q(a \mid s) \) and rearranging termns yields the
+          Taking derivatives w.r.t. \( q(a \mid s) \) and rearranging terms yields the
           closed solution of the auxiliar distribution and dual function
         </p>
 
