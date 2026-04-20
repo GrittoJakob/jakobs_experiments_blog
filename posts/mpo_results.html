@@ -135,38 +135,13 @@
 
         <p>
           In our team setup, I worked on MPO and RL²-MPO, while my teammate implemented
-          PPO and RL²-PPO. The final comparison therefore combines an off-policy approach
-          with a recurrent, meta-RL on-policy baseline <sup><a href="#ref-duan">[1]</a></sup> and PPO as non-recurrent and popular on-policy algorithm <sup><a href="#ref-ppo">[2]</a></sup>. 
+          PPO and RL²-PPO. RL²-PPO is an on-policy meta-reinforcement learning algorithm which has an recurrent actor and critic.
+          The final comparison therefore combines an off-policy, meta-RL on-policy baseline <sup><a href="#ref-duan">[1]</a></sup> and PPO as non-recurrent and popular on-policy algorithm <sup><a href="#ref-ppo">[2]</a></sup>. 
           Since RL²-MPO turned out to be too expensive and unstable to train reliably within the project scope, this
           results page focuses on MPO and compares it mainly against PPO and RL²-PPO in
           meta-RL and robust multi-task experiments.
         </p>
 
-        <h2>Experimental Setup</h2>
-        <p>
-          Unless otherwise stated, all MPO experiments were run with the implementation
-          described in the previous post. Across experiments, the same overall training
-          pipeline, replay-buffer setup, and optimizer configuration were used.
-        </p>
-
-        <ul>
-          <li><strong>Environment:</strong> Gymnasium Ant-v5</li>
-          <li><strong>Batch size:</strong> 1024</li>
-          <li><strong>Replay buffer size:</strong> 1,000,000</li>
-          <li><strong>Number of action samples in the E-step:</strong> 20</li>
-          <li><strong>Evaluation metric:</strong> episodic return</li>
-        </ul>
-
-        <div class="repo-box">
-          <strong>Hyperparameters:</strong><br />
-          <a
-            href="https://github.com/GrittoJakob/mpo_experiments/blob/main/configs/Robust_Ant_v5.py"
-            target="_blank"
-            rel="noreferrer"
-          >
-            → View hyperparameters on GitHub
-          </a>
-        </div>
 
         <h2>Actor & Critic Networks</h2>
 
@@ -452,11 +427,6 @@
               L. Campanaro, S. Gangapurwala, W. Merkt, and I. Havoutis, “Learning
               and Deploying Robust Locomotion Policies with Minimal Dynamics
               Randomization,” vol. 242, pp. 578–590.
-            </li>
-            <li id="ref-blogpost">
-              J. Gritto, “MPO Algorithm: Theory and Implementation Details.”
-              [Online]. Available:
-              <a href="mpo_theory_post.html">mpo_theory_post.html</a>
             </li>
           </ol>
         </div>
