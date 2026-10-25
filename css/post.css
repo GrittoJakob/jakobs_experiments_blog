@@ -83,9 +83,111 @@ sup a:hover {
 }
 
 @media (max-width: 640px) {
-article {
-  background: var(--panel);
+  article {
+    padding: 1.5rem;
+  }
+}
+
+/* Continuous-time RL series: shared blog styling with article-specific elements. */
+.continuous-time-post header {
+  z-index: 10;
+}
+
+.continuous-time-post article {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.continuous-time-post [id] {
+  scroll-margin-top: 7rem;
+}
+
+.series-nav,
+.continuous-time-post .next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.series-nav a {
+  padding: 0.5rem 0;
+}
+
+.series-nav [aria-current="page"] {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.3rem;
+}
+
+.continuous-time-post .toc {
+  padding: 1rem 1.1rem;
+  margin: 1.5rem 0 2rem;
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1.5rem;
+  border-radius: 14px;
+  background: var(--bg);
+}
+
+.continuous-time-post .toc strong {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.continuous-time-post .toc a {
+  display: block;
+  padding: 0.2rem 0;
+}
+
+/* Use the same unboxed, centered display math in every blog post. */
+article .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.continuous-time-post .algorithm {
+  margin: 1.5rem 0;
+}
+
+.continuous-time-post .callout {
+  margin: 1.5rem 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg);
+}
+
+.continuous-time-post .callout {
+  border-left: 4px solid var(--link);
+}
+
+.continuous-time-post .callout p:last-child {
+  margin-bottom: 0;
+}
+
+.continuous-time-post .kicker {
+  display: block;
+  font-weight: 700;
+  color: var(--link);
+}
+
+.continuous-time-post .refs {
+  overflow-wrap: anywhere;
+}
+
+.continuous-time-post .next {
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .continuous-time-post .nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
 }
